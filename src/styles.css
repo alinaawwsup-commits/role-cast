@@ -6,6 +6,7 @@
   --color-muted: #9b9b8e;
   --color-border: #e0d8ce;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
 }
 
 * {
@@ -24,6 +25,13 @@ body {
   color: var(--color-text);
   font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont,
     "Roboto", "Segoe UI", sans-serif;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
 }
 
 .app-shell {
@@ -295,7 +303,9 @@ body {
   border-radius: 11px;
   padding: 10px 12px;
   font-size: 14px;
-  color: var(--color-text);
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text);
+  caret-color: var(--color-text);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -306,7 +316,8 @@ body {
 }
 
 .sheet-input::placeholder {
-  color: var(--color-muted);
+  color: var(--color-muted) !important;
+  -webkit-text-fill-color: var(--color-muted);
 }
 
 .sheet-levels {
@@ -1022,9 +1033,17 @@ body {
   padding: 10px 46px 10px 12px;
   font-size: 14px;
   font-family: inherit;
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text);
+  caret-color: var(--color-text);
   outline: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.chat-input::placeholder {
+  color: var(--color-muted) !important;
+  -webkit-text-fill-color: var(--color-muted);
 }
 
 .chat-input:focus {
