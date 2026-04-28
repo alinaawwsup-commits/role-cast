@@ -11,4 +11,14 @@ if (!hasSupabaseConfig) {
   );
 }
 
-export const supabase = hasSupabaseConfig ? createClient(supabaseUrl, supabaseAnonKey) : null;
+function createSupabaseClientSafe() {
+  if (!hasSupabaseConfig) return null;
+  try {
+    return createClient(supabaseUrl, supabaseAnonKey);
+  } catch (error) {
+    console.warn("Supabase config is invalid. Running in local fallback mode.", error);
+    return null;
+  }
+}
+
+export const supabase = createSupabaseClientSafe();
