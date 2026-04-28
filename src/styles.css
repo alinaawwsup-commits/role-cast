@@ -34,6 +34,13 @@ button {
   color: inherit;
 }
 
+/* Prevent iOS/Telegram WebView auto-zoom on input focus */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
 .app-shell {
   height: 100%;
   min-height: 100%;
@@ -302,7 +309,7 @@ button {
   border: 0.5px solid #e5dbcf;
   border-radius: 11px;
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--color-text) !important;
   -webkit-text-fill-color: var(--color-text);
   caret-color: var(--color-text);
@@ -1031,7 +1038,7 @@ button {
   background: linear-gradient(165deg, #fffdf9 0%, #f7f3ec 100%);
   border-radius: 14px;
   padding: 10px 46px 10px 12px;
-  font-size: 14px;
+  font-size: 16px;
   font-family: inherit;
   color: var(--color-text) !important;
   -webkit-text-fill-color: var(--color-text);
