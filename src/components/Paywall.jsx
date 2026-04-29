@@ -3,6 +3,11 @@ import { useState } from "react";
 import { startStarsCheckout } from "../lib/billing";
 import { useAuth } from "../context/AuthContext";
 
+const PACKAGES = [
+  { id: "start", title: "Старт", interviews: 10, stars: 500 },
+  { id: "boost", title: "Прокачка", interviews: 30, stars: 1299, featured: true },
+];
+
 function Paywall({ isOpen, onClose }) {
   const { refreshPremiumStatus, refreshInterviewAccess, interviewAccess, telegramId } = useAuth();
   const [isPaying, setIsPaying] = useState(false);
@@ -50,26 +55,28 @@ function Paywall({ isOpen, onClose }) {
           Бесплатно доступно только 2 интервью. Дальше выбери пакет:
         </p>
 
-        <ul className="paywall-features">
-          <li>Осталось интервью: {interviewAccess.remainingInterviews}</li>
-          <li>Старт: 10 интервью за 500 ⭐</li>
-          <li>Прокачка: 30 интервью за 1299 ⭐</li>
-        </ul>
+        <p className="paywall-balance-note">Сейчас доступно: {interviewAccess.remainingInterviews} интервью</p>
 
-        <button
-          className="paywall-primary-btn"
-          onClick={() => handleBuyPackage("start")}
-          disabled={isPaying}
-        >
-          {isPaying ? "Открываем оплату..." : "Купить Старт · 500 ⭐"}
-        </button>
-        <button
-          className="paywall-secondary-btn"
-          onClick={() => handleBuyPackage("boost")}
-          disabled={isPaying}
-        >
-          {isPaying ? "Открываем оплату..." : "Купить Прокачка · 1299 ⭐"}
-        </button>
+        <div className="package-grid paywall-package-grid">
+          {PACKAGES.map((pkg) => (
+            <article
+              key={pkg.id}
+              className={`package-card ${pkg.featured ? "featured" : ""}`.trim()}
+            >
+              <p className="package-card-title">{pkg.title}</p>
+              <p className="package-card-meta">{pkg.interviews} интервью</p>
+              <p className="package-card-price">{pkg.stars} ⭐</p>
+              <button
+                className="package-buy-btn"
+                onClick={() => handleBuyPackage(pkg.id)}
+                disabled={isPaying}
+              >
+                {isPaying ? "Открываем оплату..." : "Купить"}
+              </button>
+            </article>
+          ))}
+        </div>
+
         <button className="history-modal-secondary-btn" onClick={onClose}>
           Не сейчас
         </button>

@@ -1,11 +1,10 @@
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { startStarsCheckout } from "../lib/billing";
-import { useState } from "react";
 
-const FEATURES = [
-  "Старт: 10 интервью за 500 ⭐",
-  "Прокачка: 30 интервью за 1299 ⭐",
-  "Без автопродления",
+const PACKAGES = [
+  { id: "start", title: "Старт", interviews: 10, stars: 500 },
+  { id: "boost", title: "Прокачка", interviews: 30, stars: 1299, featured: true },
 ];
 
 function Subscription() {
@@ -34,11 +33,11 @@ function Subscription() {
 
   return (
     <section className="subscription-screen">
-      <h1 className="subscription-title">Пакеты интервью</h1>
+      <h1 className="subscription-title">Баланс</h1>
 
       <article className="subscription-active-card">
         <p className="subscription-active-badge">Текущий баланс</p>
-        <h2 className="subscription-active-name">{interviewAccess.remainingInterviews} интервью осталось</h2>
+        <h2 className="subscription-active-name">{interviewAccess.remainingInterviews} интервью</h2>
         <p className="subscription-active-date">
           Использовано: {interviewAccess.usedInterviews} из {interviewAccess.totalAllowed}
         </p>
@@ -52,30 +51,25 @@ function Subscription() {
           </p>
         </section>
 
-        <ul className="subscription-features in-card">
-          {FEATURES.map((feature) => (
-            <li key={feature} className="subscription-feature-item modern">
-              <span className="subscription-feature-dot modern" />
-              <span>{feature}</span>
-            </li>
+        <div className="package-grid">
+          {PACKAGES.map((pkg) => (
+            <article
+              key={pkg.id}
+              className={`package-card ${pkg.featured ? "featured" : ""}`.trim()}
+            >
+              <p className="package-card-title">{pkg.title}</p>
+              <p className="package-card-meta">{pkg.interviews} интервью</p>
+              <p className="package-card-price">{pkg.stars} ⭐</p>
+              <button
+                className="package-buy-btn"
+                onClick={() => handleBuyPackage(pkg.id)}
+                disabled={isPaying}
+              >
+                {isPaying ? "Открываем оплату..." : "Купить"}
+              </button>
+            </article>
           ))}
-        </ul>
-
-        <button
-          className="subscription-buy-btn"
-          onClick={() => handleBuyPackage("start")}
-          disabled={isPaying}
-        >
-          {isPaying ? "Открываем оплату..." : "Купить Старт · 500 ⭐"}
-        </button>
-        <button
-          className="subscription-cancel-btn"
-          onClick={() => handleBuyPackage("boost")}
-          disabled={isPaying}
-        >
-          {isPaying ? "Открываем оплату..." : "Купить Прокачка · 1299 ⭐"}
-        </button>
-        <p className="subscription-payment-note">Без автопродления</p>
+        </div>
       </article>
 
     </section>
