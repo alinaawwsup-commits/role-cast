@@ -21,9 +21,21 @@ function toDisplayLevel(level) {
 }
 
 function toRelativeDate(createdAt) {
-  const now = Date.now();
-  const createdTs = new Date(createdAt).getTime();
-  const daysDiff = Math.floor((now - createdTs) / (1000 * 60 * 60 * 24));
+  const createdDate = new Date(createdAt);
+  const nowDate = new Date();
+  const startOfToday = new Date(
+    nowDate.getFullYear(),
+    nowDate.getMonth(),
+    nowDate.getDate()
+  );
+  const startOfCreatedDay = new Date(
+    createdDate.getFullYear(),
+    createdDate.getMonth(),
+    createdDate.getDate()
+  );
+  const daysDiff = Math.round(
+    (startOfToday.getTime() - startOfCreatedDay.getTime()) / (1000 * 60 * 60 * 24)
+  );
 
   if (daysDiff <= 0) return "сегодня";
   if (daysDiff === 1) return "вчера";
