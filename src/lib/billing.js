@@ -29,6 +29,14 @@ async function createStarsInvoice(packageId) {
 export async function startStarsCheckout({ packageId, onPaid, onClosed } = {}) {
   const invoiceLink = await createStarsInvoice(packageId);
 
+  const openFallbackLink = () => {
+    if (typeof WebApp?.openTelegramLink === "function") {
+      WebApp.openTelegramLink(invoiceLink);
+      return;
+    }
+    window.open(invoiceLink, "_blank", "noopener,noreferrer");
+  };
+
   if (typeof WebApp?.openInvoice === "function") {
     let callbackCalled = false;
     let retryTimerId = 0;
@@ -36,9 +44,10 @@ export async function startStarsCheckout({ packageId, onPaid, onClosed } = {}) {
       if (!callbackCalled) {
         callbackCalled = true;
         window.clearTimeout(retryTimerId);
-        onClosed?.("timeout");
+        openFallbackLink();
+        onClosed?.("opened_fallback");
       }
-    }, 15000);
+    }, 4500);
 
     const handleStatus = (status) => {
       if (callbackCalled) return;
@@ -53,7 +62,7 @@ export async function startStarsCheckout({ packageId, onPaid, onClosed } = {}) {
 
     const urlValue = String(invoiceLink).trim();
     const slugValue = urlValue.replace(/^https?:\/\/t\.me\//i, "");
-    const candidates = [slugValue, urlValue];
+    const candidates = [urlValue, slugValue];
 
     let attemptIndex = 0;
     const tryOpen = () => {
@@ -77,10 +86,10 @@ export async function startStarsCheckout({ packageId, onPaid, onClosed } = {}) {
       if (!callbackCalled && attemptIndex < candidates.length) {
         tryOpen();
       }
-    }, 2500);
+    }, 1200);
     return;
   }
 
-  window.open(invoiceLink, "_blank", "noopener,noreferrer");
+  openFallbackLink();
   onClosed?.("opened");
 }
