@@ -29,67 +29,12 @@ async function createStarsInvoice(packageId) {
 export async function startStarsCheckout({ packageId, onPaid, onClosed } = {}) {
   const invoiceLink = await createStarsInvoice(packageId);
 
-  const openFallbackLink = () => {
-    if (typeof WebApp?.openTelegramLink === "function") {
-      WebApp.openTelegramLink(invoiceLink);
-      return;
-    }
+  // openInvoice is unstable in some Telegram clients (WEB_APP_INVOICE_INVALID).
+  // Directly opening the invoice deep link from user click is more reliable.
+  if (typeof WebApp?.openTelegramLink === "function") {
+    WebApp.openTelegramLink(invoiceLink);
+  } else {
     window.open(invoiceLink, "_blank", "noopener,noreferrer");
-  };
-
-  if (typeof WebApp?.openInvoice === "function") {
-    let callbackCalled = false;
-    let retryTimerId = 0;
-    const statusTimeoutId = window.setTimeout(() => {
-      if (!callbackCalled) {
-        callbackCalled = true;
-        window.clearTimeout(retryTimerId);
-        openFallbackLink();
-        onClosed?.("opened_fallback");
-      }
-    }, 4500);
-
-    const handleStatus = (status) => {
-      if (callbackCalled) return;
-      callbackCalled = true;
-      window.clearTimeout(retryTimerId);
-      window.clearTimeout(statusTimeoutId);
-      if (status === "paid") {
-        onPaid?.();
-      }
-      onClosed?.(status);
-    };
-
-    const urlValue = String(invoiceLink).trim();
-    const slugValue = urlValue.replace(/^https?:\/\/t\.me\//i, "");
-    const candidates = [urlValue, slugValue];
-
-    let attemptIndex = 0;
-    const tryOpen = () => {
-      if (callbackCalled || attemptIndex >= candidates.length) return;
-      const value = candidates[attemptIndex];
-      attemptIndex += 1;
-      try {
-        WebApp.openInvoice(value, handleStatus);
-      } catch (openError) {
-        if (attemptIndex >= candidates.length) {
-          window.clearTimeout(statusTimeoutId);
-          throw openError;
-        }
-        tryOpen();
-      }
-    };
-
-    tryOpen();
-
-    retryTimerId = window.setTimeout(() => {
-      if (!callbackCalled && attemptIndex < candidates.length) {
-        tryOpen();
-      }
-    }, 1200);
-    return;
   }
-
-  openFallbackLink();
   onClosed?.("opened");
 }
