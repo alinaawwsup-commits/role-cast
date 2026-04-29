@@ -29,12 +29,32 @@ async function createStarsInvoice(packageId) {
 export async function startStarsCheckout({ packageId, onPaid, onClosed } = {}) {
   const invoiceLink = await createStarsInvoice(packageId);
 
-  // openInvoice is unstable in some Telegram clients (WEB_APP_INVOICE_INVALID).
-  // Directly opening the invoice deep link from user click is more reliable.
-  if (typeof WebApp?.openTelegramLink === "function") {
-    WebApp.openTelegramLink(invoiceLink);
-  } else {
-    window.open(invoiceLink, "_blank", "noopener,noreferrer");
+  if (typeof WebApp?.openInvoice === "function") {
+    let settled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      onClosed?.("timeout");
+    }, 20000);
+
+    try {
+      // Canonical Telegram Stars flow for Mini Apps.
+      WebApp.openInvoice(String(invoiceLink).trim(), (status) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        if (status === "paid") {
+          onPaid?.();
+        }
+        onClosed?.(status);
+      });
+      return;
+    } catch (error) {
+      window.clearTimeout(timeoutId);
+      throw error;
+    }
   }
+
+  window.open(invoiceLink, "_blank", "noopener,noreferrer");
   onClosed?.("opened");
 }
