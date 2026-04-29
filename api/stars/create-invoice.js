@@ -4,13 +4,13 @@ const PACKAGES = {
     id: "start",
     title: "Старт",
     interviews: 10,
-    stars: 500,
+    stars: 349,
   },
   boost: {
     id: "boost",
     title: "Прокачка",
     interviews: 30,
-    stars: 1299,
+    stars: 899,
   },
 };
 
