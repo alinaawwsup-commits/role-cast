@@ -12,9 +12,11 @@ function Paywall({ isOpen, onClose }) {
   const { refreshPremiumStatus, refreshInterviewAccess, interviewAccess, telegramId } = useAuth();
   const [isPaying, setIsPaying] = useState(false);
   const [activePackageId, setActivePackageId] = useState("");
+  const [paymentError, setPaymentError] = useState("");
 
   const handleBuyPackage = async (packageId) => {
     if (isPaying) return;
+    setPaymentError("");
     setIsPaying(true);
     setActivePackageId(packageId);
     try {
@@ -34,6 +36,7 @@ function Paywall({ isOpen, onClose }) {
       });
     } catch (error) {
       console.error("Failed to open Stars checkout", error);
+      setPaymentError(error instanceof Error ? error.message : "Не удалось открыть оплату.");
       setIsPaying(false);
       setActivePackageId("");
     }
@@ -85,6 +88,7 @@ function Paywall({ isOpen, onClose }) {
             </article>
           ))}
         </div>
+        {paymentError && <p className="paywall-balance-note">{paymentError}</p>}
 
         <button className="history-modal-secondary-btn" onClick={onClose}>
           Не сейчас

@@ -11,9 +11,11 @@ function Subscription() {
   const { interviewAccess, refreshPremiumStatus, refreshInterviewAccess, telegramId } = useAuth();
   const [isPaying, setIsPaying] = useState(false);
   const [activePackageId, setActivePackageId] = useState("");
+  const [paymentError, setPaymentError] = useState("");
 
   const handleBuyPackage = async (packageId) => {
     if (isPaying) return;
+    setPaymentError("");
     setIsPaying(true);
     setActivePackageId(packageId);
     try {
@@ -30,6 +32,7 @@ function Subscription() {
       });
     } catch (error) {
       console.error("Failed to open Stars checkout", error);
+      setPaymentError(error instanceof Error ? error.message : "Не удалось открыть оплату.");
       setIsPaying(false);
       setActivePackageId("");
     }
@@ -76,6 +79,7 @@ function Subscription() {
             </article>
           ))}
         </div>
+        {paymentError && <p className="subscription-payment-note">{paymentError}</p>}
       </article>
 
     </section>
