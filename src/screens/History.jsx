@@ -1,8 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
+import BottomSheet from "../components/BottomSheet";
 import { getInterviewHistory } from "../lib/interviews";
+import Paywall from "../components/Paywall";
 import { useAuth } from "../context/AuthContext";
+
+const LEVELS = [
+  { id: "junior", label: "Джуниор", replyLimit: 20 },
+  { id: "middle", label: "Мидл", replyLimit: 15 },
+  { id: "senior", label: "Сеньор", replyLimit: 10 },
+];
+
+const LEVEL_DESCRIPTIONS = {
+  junior: "Джуниор: Легкий уровень. Больше поддержки и базовые вопросы.",
+  middle: "Мидл: Средний уровень. Умеренное давление и акцент на опыте.",
+  senior: "Сеньор: Хард уровень. Жестче вопросы и фокус на результатах.",
+};
 
 function getLevelLabel(level) {
   const levelMap = {
@@ -19,9 +33,14 @@ function getLevelLabel(level) {
 
 function History() {
   const navigate = useNavigate();
-  const { isPremium } = useAuth();
+  const { isPremium, interviewsToday, telegramId, refreshInterviewsToday } = useAuth();
   const [matches, setMatches] = useState([]);
   const [activeMatch, setActiveMatch] = useState(null);
+  const [isSheetOpen, setSheetOpen] = useState(false);
+  const [isPaywallOpen, setPaywallOpen] = useState(false);
+  const [position, setPosition] = useState("");
+  const [company, setCompany] = useState("");
+  const [selectedLevel, setSelectedLevel] = useState(LEVELS[1]);
 
   useEffect(() => {
     const loadHistory = () => setMatches(getInterviewHistory());
@@ -48,6 +67,41 @@ function History() {
 
   const statusLabel = activeMatch?.status === "accepted" ? "Оффер" : "Отказ";
   const hasMatches = matches.length > 0;
+  const canStart = position.trim() && company.trim();
+  const statusText = useMemo(
+    () => LEVEL_DESCRIPTIONS[selectedLevel.id],
+    [selectedLevel.id]
+  );
+
+  const openSetup = async () => {
+    const freshCount = await refreshInterviewsToday(telegramId);
+    const effectiveCount = typeof freshCount === "number" ? freshCount : interviewsToday;
+    if (!isPremium && effectiveCount >= 1) {
+      setPaywallOpen(true);
+      return;
+    }
+    setSheetOpen(true);
+  };
+
+  const startInterview = async () => {
+    if (!canStart) return;
+    const freshCount = await refreshInterviewsToday(telegramId);
+    const effectiveCount = typeof freshCount === "number" ? freshCount : interviewsToday;
+    if (!isPremium && effectiveCount >= 1) {
+      setSheetOpen(false);
+      setPaywallOpen(true);
+      return;
+    }
+
+    navigate("/chat", {
+      state: {
+        position: position.trim(),
+        company: company.trim(),
+        level: selectedLevel.id,
+        replyLimit: selectedLevel.replyLimit,
+      },
+    });
+  };
 
   const openReadOnlyChat = () => {
     if (!activeMatch) return;
@@ -131,12 +185,106 @@ function History() {
             </svg>
             <p className="history-empty-title">Интервью пока не было</p>
             <p className="history-empty-subtitle">Начните свое первое интервью</p>
-            <button className="history-empty-btn" onClick={() => navigate("/")}>
-              Пройти интервью
+            <button className="history-empty-btn" onClick={openSetup}>
+              Начать интервью
             </button>
           </div>
         )}
       </div>
+
+      <BottomSheet
+        isOpen={isSheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title="Настройка интервью"
+      >
+        <div className="sheet-section">
+          <label className="sheet-label" htmlFor="history-position">
+            На какую должность?
+          </label>
+          <input
+            id="history-position"
+            className="sheet-input"
+            placeholder="Например: Product Manager"
+            value={position}
+            onChange={(event) => setPosition(event.target.value)}
+          />
+        </div>
+
+        <div className="sheet-section">
+          <label className="sheet-label" htmlFor="history-company">
+            Компания или сфера?
+          </label>
+          <input
+            id="history-company"
+            className="sheet-input"
+            placeholder="Например: Яндекс или IT в целом"
+            value={company}
+            onChange={(event) => setCompany(event.target.value)}
+          />
+        </div>
+
+        <div className="sheet-section">
+          <span className="sheet-label">Уровень кандидата</span>
+          <div className="sheet-levels">
+            {LEVELS.map((level) => {
+              const isLocked = level.id === "senior" && !isPremium;
+              return (
+                <button
+                  key={level.id}
+                  type="button"
+                  className={`sheet-level-chip ${
+                    selectedLevel.id === level.id ? "active" : ""
+                  } ${isLocked ? "locked" : ""}`.trim()}
+                  onClick={() => {
+                    if (isLocked) {
+                      setSheetOpen(false);
+                      setPaywallOpen(true);
+                      return;
+                    }
+                    setSelectedLevel(level);
+                  }}
+                  aria-disabled={isLocked}
+                >
+                  <span>{level.label}</span>
+                  {isLocked && (
+                    <span className="sheet-chip-lock" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M8 10V7.5C8 5.57 9.57 4 11.5 4C13.43 4 15 5.57 15 7.5V10"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                        <rect
+                          x="6"
+                          y="10"
+                          width="11"
+                          height="9"
+                          rx="2"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                        />
+                      </svg>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <p className="sheet-help">{statusText}</p>
+        </div>
+
+        <button
+          type="button"
+          className={`sheet-submit-btn ${canStart ? "" : "disabled"}`.trim()}
+          disabled={!canStart}
+          onClick={startInterview}
+        >
+          Начать интервью
+        </button>
+      </BottomSheet>
+
+      <Paywall isOpen={isPaywallOpen} onClose={() => setPaywallOpen(false)} />
 
       <Modal isOpen={Boolean(activeMatch)} onClose={() => setActiveMatch(null)}>
         {activeMatch && (

@@ -111,7 +111,7 @@ function Home() {
           <div className="home-stat-divider" />
           <div className="home-stat-item">
             <span className="home-stat-value">{stats.accepted}</span>
-            <span className="home-stat-label">Принят</span>
+            <span className="home-stat-label">Оффер</span>
           </div>
           <div className="home-stat-divider" />
           <div className="home-stat-item">

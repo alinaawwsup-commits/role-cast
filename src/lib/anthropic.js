@@ -75,11 +75,13 @@ function getInterviewContext(systemPrompt) {
   const positionMatch = systemPrompt.match(/должность\s(.+?)\./i);
   const companyMatch = systemPrompt.match(/компании\s(.+?)\./i);
   const levelMatch = systemPrompt.match(/Уровень кандидата:\s(.+?)\./i);
+  const hrNameMatch = systemPrompt.match(/Тебя зовут\s(.+?)\n/i);
 
   return {
     position: positionMatch?.[1] || "специалиста",
     company: companyMatch?.[1] || "IT компании",
     level: levelMatch?.[1] || "Мид",
+    hrName: hrNameMatch?.[1] || "Алексей",
   };
 }
 
@@ -96,7 +98,7 @@ function scoreAnswer(text) {
 }
 
 function getMockInterviewReply(messages, systemPrompt) {
-  const { position, company } = getInterviewContext(systemPrompt);
+  const { position, company, hrName } = getInterviewContext(systemPrompt);
   const userMessages = messages.filter(
     (message) =>
       message.role === "user" &&
@@ -116,7 +118,7 @@ function getMockInterviewReply(messages, systemPrompt) {
   }
 
   const stageReplies = [
-    `Здравствуйте! Давайте начнём наше интервью. В первую очередь скажите, почему вы хотите именно в ${company} и почему выбрали позицию ${position}?`,
+    `Здравствуйте! Я ${hrName}, HR компании ${company}. Давайте начнём наше интервью. В первую очередь скажите, почему вы хотите именно в ${company} и почему выбрали позицию ${position}?`,
     `Почему вы хотите именно в ${company} и почему выбрали позицию ${position}?`,
     "Приведите пример проекта, где вы дали измеримый результат. Какие были метрики до и после?",
     "Какую самую сложную задачу вы закрыли за последний год и в чём была ваша личная зона ответственности?",

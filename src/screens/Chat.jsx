@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import Paywall from "../components/Paywall";
 
 const MAX_REPLIES = 15;
+const HR_NAMES = ["Алексей", "Ирина", "Дмитрий", "Анна", "Максим", "Ольга", "Кирилл", "Мария"];
 const REVIEW_PROMPT = `Ты — эксперт по карьерному коучингу. 
 Проанализируй это собеседование и дай обратную связь кандидату.
 
@@ -159,6 +160,7 @@ function Chat() {
   const messagesEndRef = useRef(null);
   const finishTimeoutRef = useRef(null);
   const savedToSupabaseRef = useRef(false);
+  const hrNameRef = useRef(HR_NAMES[Math.floor(Math.random() * HR_NAMES.length)]);
 
   const isReadOnly = Boolean(state?.readOnly);
   const isClosed = Boolean(state?.closed);
@@ -170,11 +172,16 @@ function Chat() {
   const levelLabel = getLevelLabel(state?.level || "Мид");
   const systemPrompt = useMemo(
     () =>
-      buildSystemPrompt(
+      `${buildSystemPrompt(
         state?.position || "Специалист",
         state?.company || "IT сфера",
         levelLabel
-      ),
+      )}
+
+Дополнение по роли:
+- Тебя зовут ${hrNameRef.current}
+- В первом сообщении коротко представься по имени.
+- Не меняй имя в ходе интервью.`,
     [state?.position, state?.company, levelLabel]
   );
   const progressPercent = Math.min((replyCount / MAX_REPLIES) * 100, 100);
@@ -402,7 +409,7 @@ function Chat() {
           )}
           <div className="chat-heading-block">
             <h1 className="chat-title">{title}</h1>
-            <p className="chat-subtitle">{subtitle}</p>
+            <p className="chat-subtitle">{`${hrNameRef.current} · ${subtitle}`}</p>
           </div>
           {isActiveChat && (
             <button className="chat-finish-btn" onClick={requestFinishChat}>
