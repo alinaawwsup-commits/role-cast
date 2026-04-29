@@ -16,6 +16,8 @@ const LEVEL_DESCRIPTIONS = {
   middle: "Мидл: Средний уровень. Умеренное давление и акцент на опыте.",
   senior: "Сеньор: Хард уровень. Жестче вопросы и фокус на результатах.",
 };
+const FREE_DAILY_LIMIT = 1;
+const PRO_DAILY_LIMIT = 10;
 
 function Home() {
   const navigate = useNavigate();
@@ -37,8 +39,9 @@ function Home() {
   const openSetup = async () => {
     const freshCount = await refreshInterviewsToday(telegramId);
     const effectiveCount = typeof freshCount === "number" ? freshCount : interviewsToday;
+    const dailyLimit = isPremium ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
 
-    if (!isPremium && effectiveCount >= 1) {
+    if (effectiveCount >= dailyLimit) {
       setPaywallOpen(true);
       return;
     }
@@ -50,7 +53,8 @@ function Home() {
 
     const freshCount = await refreshInterviewsToday(telegramId);
     const effectiveCount = typeof freshCount === "number" ? freshCount : interviewsToday;
-    if (!isPremium && effectiveCount >= 1) {
+    const dailyLimit = isPremium ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
+    if (effectiveCount >= dailyLimit) {
       setSheetOpen(false);
       setPaywallOpen(true);
       return;

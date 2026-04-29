@@ -20,7 +20,7 @@ function Paywall({ isOpen, onClose }) {
         <p className="paywall-subtitle">Убирает все ограничения</p>
 
         <ul className="paywall-features">
-          <li>15 интервью в день вместо одного</li>
+          <li>10 интервью в день вместо одного</li>
           <li>Все уровни сложности</li>
           <li>Полный разбор каждого интервью</li>
         </ul>
