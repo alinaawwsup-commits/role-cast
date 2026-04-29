@@ -409,7 +409,7 @@ function Chat() {
           )}
           <div className="chat-heading-block">
             <h1 className="chat-title">{title}</h1>
-            <p className="chat-subtitle">{`${hrNameRef.current} · ${subtitle}`}</p>
+            <p className="chat-subtitle">{subtitle}</p>
           </div>
           {isActiveChat && (
             <button className="chat-finish-btn" onClick={requestFinishChat}>
