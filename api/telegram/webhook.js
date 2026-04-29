@@ -24,7 +24,7 @@ async function sendStartMessage(chatId) {
     },
     body: JSON.stringify({
       chat_id: chatId,
-      text: "Нажми кнопку «Открыть» внизу слева, чтобы запустить приложение.",
+      text: "Нажми кнопку «Открыть» внизу слева, чтобы запустить приложение 🚀",
     }),
   });
 
