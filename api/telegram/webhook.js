@@ -54,6 +54,27 @@ export default async function handler(req, res) {
     const messageText = String(update?.message?.text || "").trim();
     const chatId = update?.message?.chat?.id;
 
+    if (messageText.startsWith("/appss_verify") && chatId) {
+      const botToken = getBotToken();
+      const endpoint = `${TELEGRAM_API_BASE}/bot${botToken}/sendMessage`;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: "appss_506437",
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.description || "Failed to send /appss_verify reply");
+      }
+      return res.status(200).json({ ok: true, handled: "appss_verify" });
+    }
+
     if (messageText.startsWith("/start") && chatId) {
       await sendStartMessage(chatId);
       return res.status(200).json({ ok: true, handled: "start" });
