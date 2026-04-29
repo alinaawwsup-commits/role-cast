@@ -31,34 +31,53 @@ export async function startStarsCheckout({ packageId, onPaid, onClosed } = {}) {
 
   if (typeof WebApp?.openInvoice === "function") {
     let callbackCalled = false;
-    const timeoutId = window.setTimeout(() => {
+    let retryTimerId = 0;
+    const statusTimeoutId = window.setTimeout(() => {
       if (!callbackCalled) {
+        callbackCalled = true;
+        window.clearTimeout(retryTimerId);
         onClosed?.("timeout");
       }
-    }, 12000);
+    }, 15000);
 
     const handleStatus = (status) => {
+      if (callbackCalled) return;
       callbackCalled = true;
-      window.clearTimeout(timeoutId);
+      window.clearTimeout(retryTimerId);
+      window.clearTimeout(statusTimeoutId);
       if (status === "paid") {
         onPaid?.();
       }
       onClosed?.(status);
     };
 
-    try {
-      // Telegram expects a full t.me invoice URL.
-      WebApp.openInvoice(invoiceLink, handleStatus);
-    } catch (primaryError) {
+    const urlValue = String(invoiceLink).trim();
+    const slugValue = urlValue.replace(/^https?:\/\/t\.me\//i, "");
+    const candidates = [slugValue, urlValue];
+
+    let attemptIndex = 0;
+    const tryOpen = () => {
+      if (callbackCalled || attemptIndex >= candidates.length) return;
+      const value = candidates[attemptIndex];
+      attemptIndex += 1;
       try {
-        // Fallback for clients that accept the short invoice slug.
-        const slug = String(invoiceLink).replace(/^https?:\/\/t\.me\//i, "");
-        WebApp.openInvoice(slug, handleStatus);
-      } catch {
-        window.clearTimeout(timeoutId);
-        throw primaryError;
+        WebApp.openInvoice(value, handleStatus);
+      } catch (openError) {
+        if (attemptIndex >= candidates.length) {
+          window.clearTimeout(statusTimeoutId);
+          throw openError;
+        }
+        tryOpen();
       }
-    }
+    };
+
+    tryOpen();
+
+    retryTimerId = window.setTimeout(() => {
+      if (!callbackCalled && attemptIndex < candidates.length) {
+        tryOpen();
+      }
+    }, 2500);
     return;
   }
 
