@@ -15,23 +15,19 @@ function Subscription() {
       <h1 className="subscription-title">Подписка</h1>
 
       {isActiveSubscription ? (
-        <>
-          <article className="subscription-active-card">
-            <p className="subscription-active-badge">Активна</p>
-            <h2 className="subscription-active-name">Pro · 350₽ / мес</h2>
-            <p className="subscription-active-date">Продлевается 14 июня 2026</p>
-            <ul className="subscription-features in-card">
-              {FEATURES.map((feature) => (
-                <li key={feature} className="subscription-feature-item modern">
-                  <span className="subscription-feature-dot modern" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </article>
-
-          <button className="subscription-cancel-btn">Отменить продление</button>
-        </>
+        <article className="subscription-active-card">
+          <p className="subscription-active-badge">Активна</p>
+          <h2 className="subscription-active-name">Pro · ⭐ 250 / месяц</h2>
+          <p className="subscription-active-date">Действует до 14 июня 2026</p>
+          <ul className="subscription-features in-card">
+            {FEATURES.map((feature) => (
+              <li key={feature} className="subscription-feature-item modern">
+                <span className="subscription-feature-dot modern" />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
       ) : null}
 
       {!isActiveSubscription && (
@@ -57,12 +53,12 @@ function Subscription() {
           <article className="subscription-price-card in-card">
             <p className="subscription-price-badge">Pro тариф</p>
             <p className="subscription-price-value">
-              350₽ <span className="subscription-price-period">/ мес</span>
+              ⭐ 250 <span className="subscription-price-period">/ месяц</span>
             </p>
           </article>
 
           <button className="subscription-buy-btn">Оформить подписку</button>
-          <p className="subscription-payment-note">Отмена в любой момент</p>
+          <p className="subscription-payment-note">Без автопродления</p>
         </article>
       )}
 

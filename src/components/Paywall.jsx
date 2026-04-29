@@ -27,7 +27,7 @@ function Paywall({ isOpen, onClose }) {
 
         <div className="paywall-price-wrap">
           <p className="paywall-price">
-            350₽ <span className="paywall-price-period">в месяц</span>
+            ⭐ 250 <span className="paywall-price-period">/ месяц</span>
           </p>
         </div>
 
