@@ -141,7 +141,7 @@ function sleep(ms) {
 function Chat() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { telegramId, isPremium, refreshInterviewAccess } = useAuth();
+  const { telegramId, interviewAccess, refreshInterviewAccess } = useAuth();
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState([]);
   const [replyCount, setReplyCount] = useState(0);
@@ -186,6 +186,7 @@ function Chat() {
   );
   const progressPercent = Math.min((replyCount / MAX_REPLIES) * 100, 100);
   const progressColor = getProgressTone(replyCount);
+  const hasReviewAccess = interviewAccess.remainingInterviews > 0;
 
   const closeReadOnlyChat = () => navigate("/history");
   const requestFinishChat = () => setFinishModalOpen(true);
@@ -604,7 +605,7 @@ function Chat() {
 
               <section className="history-modal-section">
                 <h4 className="history-modal-section-title bad">Что улучшить</h4>
-                {isPremium ? (
+                {hasReviewAccess ? (
                   <p className="history-modal-section-text bad-bg">{reviewData.whatToImprove}</p>
                 ) : (
                   <div className="review-locked-panel">
@@ -637,7 +638,7 @@ function Chat() {
 
               <section className="history-modal-section">
                 <h4 className="history-modal-section-title neutral">Лучший ответ</h4>
-                {isPremium ? (
+                {hasReviewAccess ? (
                   <p className="history-modal-section-text neutral-bg best-answer">
                     {reviewData.bestAnswer}
                   </p>

@@ -101,7 +101,7 @@ function BottomNav() {
         }
       >
         <SubscriptionIcon />
-        <span>Подписка</span>
+        <span>Баланс</span>
       </NavLink>
     </nav>
   );

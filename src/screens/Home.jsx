@@ -19,7 +19,7 @@ const LEVEL_DESCRIPTIONS = {
 
 function Home() {
   const navigate = useNavigate();
-  const { isPremium, interviewAccess, telegramId, refreshInterviewAccess } = useAuth();
+  const { interviewAccess, telegramId, refreshInterviewAccess } = useAuth();
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [isPaywallOpen, setPaywallOpen] = useState(false);
   const [position, setPosition] = useState("");
@@ -167,50 +167,16 @@ function Home() {
           <span className="sheet-label">Уровень кандидата</span>
           <div className="sheet-levels">
             {LEVELS.map((level) => (
-              (() => {
-                const isLocked = level.id === "senior" && !isPremium;
-                return (
-                  <button
-                    key={level.id}
-                    type="button"
-                    className={`sheet-level-chip ${
-                      selectedLevel.id === level.id ? "active" : ""
-                    } ${isLocked ? "locked" : ""}`.trim()}
-                    onClick={() => {
-                      if (isLocked) {
-                        setSheetOpen(false);
-                        setPaywallOpen(true);
-                        return;
-                      }
-                      setSelectedLevel(level);
-                    }}
-                    aria-disabled={isLocked}
-                  >
-                    <span>{level.label}</span>
-                    {isLocked && (
-                      <span className="sheet-chip-lock" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none">
-                          <path
-                            d="M8 10V7.5C8 5.57 9.57 4 11.5 4C13.43 4 15 5.57 15 7.5V10"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                          />
-                          <rect
-                            x="6"
-                            y="10"
-                            width="11"
-                            height="9"
-                            rx="2"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                          />
-                        </svg>
-                      </span>
-                    )}
-                  </button>
-                );
-              })()
+              <button
+                key={level.id}
+                type="button"
+                className={`sheet-level-chip ${
+                  selectedLevel.id === level.id ? "active" : ""
+                }`.trim()}
+                onClick={() => setSelectedLevel(level)}
+              >
+                <span>{level.label}</span>
+              </button>
             ))}
           </div>
           <p className="sheet-help">{statusText}</p>

@@ -33,7 +33,7 @@ function getLevelLabel(level) {
 
 function History() {
   const navigate = useNavigate();
-  const { isPremium, interviewAccess, telegramId, refreshInterviewAccess } = useAuth();
+  const { interviewAccess, telegramId, refreshInterviewAccess } = useAuth();
   const [matches, setMatches] = useState([]);
   const [activeMatch, setActiveMatch] = useState(null);
   const [isSheetOpen, setSheetOpen] = useState(false);
@@ -67,6 +67,7 @@ function History() {
 
   const statusLabel = activeMatch?.status === "accepted" ? "Оффер" : "Отказ";
   const hasMatches = matches.length > 0;
+  const hasReviewAccess = interviewAccess.remainingInterviews > 0;
   const canStart = position.trim() && company.trim();
   const statusText = useMemo(
     () => LEVEL_DESCRIPTIONS[selectedLevel.id],
@@ -233,46 +234,16 @@ function History() {
           <span className="sheet-label">Уровень кандидата</span>
           <div className="sheet-levels">
             {LEVELS.map((level) => {
-              const isLocked = level.id === "senior" && !isPremium;
               return (
                 <button
                   key={level.id}
                   type="button"
                   className={`sheet-level-chip ${
                     selectedLevel.id === level.id ? "active" : ""
-                  } ${isLocked ? "locked" : ""}`.trim()}
-                  onClick={() => {
-                    if (isLocked) {
-                      setSheetOpen(false);
-                      setPaywallOpen(true);
-                      return;
-                    }
-                    setSelectedLevel(level);
-                  }}
-                  aria-disabled={isLocked}
+                  }`.trim()}
+                  onClick={() => setSelectedLevel(level)}
                 >
                   <span>{level.label}</span>
-                  {isLocked && (
-                    <span className="sheet-chip-lock" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M8 10V7.5C8 5.57 9.57 4 11.5 4C13.43 4 15 5.57 15 7.5V10"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                        />
-                        <rect
-                          x="6"
-                          y="10"
-                          width="11"
-                          height="9"
-                          rx="2"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                        />
-                      </svg>
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -341,7 +312,7 @@ function History() {
 
             <section className="history-modal-section">
               <h4 className="history-modal-section-title bad">Что можно лучше</h4>
-              {isPremium ? (
+              {hasReviewAccess ? (
                 <p className="history-modal-section-text bad-bg">
                   {activeMatch.review?.whatToImprove || "Попробуй пройти интервью ещё раз."}
                 </p>
@@ -357,7 +328,7 @@ function History() {
 
             <section className="history-modal-section">
               <h4 className="history-modal-section-title neutral">Лучший ответ</h4>
-              {isPremium ? (
+              {hasReviewAccess ? (
                 <p className="history-modal-section-text neutral-bg best-answer">
                   {activeMatch.review?.bestAnswer || "Лучший ответ пока недоступен."}
                 </p>

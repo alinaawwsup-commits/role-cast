@@ -11,10 +11,12 @@ const PACKAGES = [
 function Paywall({ isOpen, onClose }) {
   const { refreshPremiumStatus, refreshInterviewAccess, interviewAccess, telegramId } = useAuth();
   const [isPaying, setIsPaying] = useState(false);
+  const [activePackageId, setActivePackageId] = useState("");
 
   const handleBuyPackage = async (packageId) => {
     if (isPaying) return;
     setIsPaying(true);
+    setActivePackageId(packageId);
     try {
       await startStarsCheckout({
         packageId,
@@ -27,11 +29,13 @@ function Paywall({ isOpen, onClose }) {
             onClose?.();
           }
           setIsPaying(false);
+          setActivePackageId("");
         },
       });
     } catch (error) {
       console.error("Failed to open Stars checkout", error);
       setIsPaying(false);
+      setActivePackageId("");
     }
   };
 
@@ -63,7 +67,6 @@ function Paywall({ isOpen, onClose }) {
               key={pkg.id}
               className={`package-card ${pkg.featured ? "featured" : ""}`.trim()}
             >
-              {pkg.featured && <p className="package-card-badge">Выгодно</p>}
               <div className="package-card-row">
                 <div className="package-card-main">
                   <p className="package-card-title">{pkg.title}</p>
@@ -74,7 +77,9 @@ function Paywall({ isOpen, onClose }) {
                   onClick={() => handleBuyPackage(pkg.id)}
                   disabled={isPaying}
                 >
-                  {isPaying ? "Оплата..." : `Купить за ${pkg.stars} ⭐`}
+                  {isPaying && activePackageId === pkg.id
+                    ? "Оплата..."
+                    : `Купить за ${pkg.stars} ⭐`}
                 </button>
               </div>
             </article>

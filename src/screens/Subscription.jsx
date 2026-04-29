@@ -10,10 +10,12 @@ const PACKAGES = [
 function Subscription() {
   const { interviewAccess, refreshPremiumStatus, refreshInterviewAccess, telegramId } = useAuth();
   const [isPaying, setIsPaying] = useState(false);
+  const [activePackageId, setActivePackageId] = useState("");
 
   const handleBuyPackage = async (packageId) => {
     if (isPaying) return;
     setIsPaying(true);
+    setActivePackageId(packageId);
     try {
       await startStarsCheckout({
         packageId,
@@ -23,11 +25,13 @@ function Subscription() {
         },
         onClosed: () => {
           setIsPaying(false);
+          setActivePackageId("");
         },
       });
     } catch (error) {
       console.error("Failed to open Stars checkout", error);
       setIsPaying(false);
+      setActivePackageId("");
     }
   };
 
@@ -38,9 +42,6 @@ function Subscription() {
       <article className="subscription-active-card">
         <p className="subscription-active-badge">Текущий баланс</p>
         <h2 className="subscription-active-name">{interviewAccess.remainingInterviews} интервью</h2>
-        <p className="subscription-active-date">
-          Использовано: {interviewAccess.usedInterviews} из {interviewAccess.totalAllowed}
-        </p>
       </article>
 
       <article className="subscription-inactive-card">
@@ -57,7 +58,6 @@ function Subscription() {
               key={pkg.id}
               className={`package-card ${pkg.featured ? "featured" : ""}`.trim()}
             >
-              {pkg.featured && <p className="package-card-badge">Выгодно</p>}
               <div className="package-card-row">
                 <div className="package-card-main">
                   <p className="package-card-title">{pkg.title}</p>
@@ -68,7 +68,9 @@ function Subscription() {
                   onClick={() => handleBuyPackage(pkg.id)}
                   disabled={isPaying}
                 >
-                  {isPaying ? "Оплата..." : `Купить за ${pkg.stars} ⭐`}
+                  {isPaying && activePackageId === pkg.id
+                    ? "Оплата..."
+                    : `Купить за ${pkg.stars} ⭐`}
                 </button>
               </div>
             </article>

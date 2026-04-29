@@ -1472,17 +1472,6 @@ select {
   box-shadow: 0 10px 20px rgba(232, 96, 60, 0.2);
 }
 
-.package-card-badge {
-  margin: 0 0 7px;
-  width: fit-content;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: rgba(232, 96, 60, 0.14);
-  color: #b4502f;
-  font-size: 10px;
-  font-weight: 700;
-}
-
 .package-card-row {
   display: flex;
   align-items: center;
@@ -1534,7 +1523,7 @@ select {
 }
 
 .subscription-title {
-  margin: 0 0 16px;
+  margin: 0 0 8px;
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.015em;
