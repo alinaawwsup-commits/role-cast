@@ -1,5 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
+const PACKAGE_CREDITS = {
+  start: 10,
+  boost: 30,
+};
+
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -7,12 +12,6 @@ function getSupabaseAdmin() {
     throw new Error("VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing.");
   }
   return createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-}
-
-function addDaysIso(days) {
-  const next = new Date();
-  next.setDate(next.getDate() + days);
-  return next.toISOString();
 }
 
 export default async function handler(req, res) {
@@ -35,14 +34,29 @@ export default async function handler(req, res) {
     }
 
     const telegramId = String(from.id);
-    const premiumUntil = addDaysIso(30);
+    const payload = String(payment.invoice_payload || "");
+    const packageMatch = payload.match(/^rolecast_pkg_(start|boost)_/);
+    const packageId = packageMatch?.[1];
+    const creditsToAdd = PACKAGE_CREDITS[packageId];
+    if (!creditsToAdd) {
+      return res.status(200).json({ ok: true, skipped: true });
+    }
     const supabaseAdmin = getSupabaseAdmin();
+
+    const { data: existing, error: readError } = await supabaseAdmin
+      .from("users")
+      .select("package_credits")
+      .eq("telegram_id", telegramId)
+      .maybeSingle();
+
+    if (readError) throw readError;
+    const nextCredits = Number(existing?.package_credits || 0) + creditsToAdd;
 
     const { error } = await supabaseAdmin.from("users").upsert(
       {
         telegram_id: telegramId,
-        is_premium: true,
-        premium_until: premiumUntil,
+        package_credits: nextCredits,
+        is_premium: nextCredits > 0,
       },
       { onConflict: "telegram_id" }
     );

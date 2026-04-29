@@ -1,23 +1,29 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { getInterviewsToday, getTelegramId, isPremiumUser } from "../lib/user";
+import { getInterviewAccess, getTelegramId, isPremiumUser } from "../lib/user";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [telegramId, setTelegramId] = useState("test_user_123");
   const [isPremium, setIsPremium] = useState(false);
-  const [interviewsToday, setInterviewsToday] = useState(0);
+  const [interviewAccess, setInterviewAccess] = useState({
+    freeIncluded: 2,
+    purchasedCredits: 0,
+    usedInterviews: 0,
+    totalAllowed: 2,
+    remainingInterviews: 2,
+  });
   const [isAuthLoading, setAuthLoading] = useState(true);
 
-  const refreshInterviewsToday = async (idOverride) => {
+  const refreshInterviewAccess = async (idOverride) => {
     const effectiveId = idOverride || telegramId;
     if (!effectiveId) return null;
     try {
-      const nextCount = await getInterviewsToday(effectiveId);
-      setInterviewsToday(nextCount);
-      return nextCount;
+      const nextAccess = await getInterviewAccess(effectiveId);
+      setInterviewAccess(nextAccess);
+      return nextAccess;
     } catch (error) {
-      console.error("Failed to refresh interviewsToday", error);
+      console.error("Failed to refresh interview access", error);
       return null;
     }
   };
@@ -41,12 +47,12 @@ export function AuthProvider({ children }) {
       try {
         const nextTelegramId = getTelegramId();
         setTelegramId(nextTelegramId);
-        const [premium, todayCount] = await Promise.all([
+        const [premium, nextAccess] = await Promise.all([
           isPremiumUser(nextTelegramId),
-          getInterviewsToday(nextTelegramId),
+          getInterviewAccess(nextTelegramId),
         ]);
         setIsPremium(premium);
-        setInterviewsToday(todayCount);
+        setInterviewAccess(nextAccess);
       } catch (error) {
         console.error("Failed to initialize auth context", error);
       } finally {
@@ -60,7 +66,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const handleFocus = () => {
       refreshPremiumStatus();
-      refreshInterviewsToday();
+      refreshInterviewAccess();
     };
 
     window.addEventListener("focus", handleFocus);
@@ -71,12 +77,12 @@ export function AuthProvider({ children }) {
     () => ({
       telegramId,
       isPremium,
-      interviewsToday,
+      interviewAccess,
       isAuthLoading,
-      refreshInterviewsToday,
+      refreshInterviewAccess,
       refreshPremiumStatus,
     }),
-    [telegramId, isPremium, interviewsToday, isAuthLoading]
+    [telegramId, isPremium, interviewAccess, isAuthLoading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -4,16 +4,18 @@ import { startStarsCheckout } from "../lib/billing";
 import { useAuth } from "../context/AuthContext";
 
 function Paywall({ isOpen, onClose }) {
-  const { refreshPremiumStatus, telegramId } = useAuth();
+  const { refreshPremiumStatus, refreshInterviewAccess, interviewAccess, telegramId } = useAuth();
   const [isPaying, setIsPaying] = useState(false);
 
-  const handleSubscribe = async () => {
+  const handleBuyPackage = async (packageId) => {
     if (isPaying) return;
     setIsPaying(true);
     try {
       await startStarsCheckout({
+        packageId,
         onPaid: async () => {
           await refreshPremiumStatus(telegramId);
+          await refreshInterviewAccess(telegramId);
         },
         onClosed: async (status) => {
           if (status === "paid") {
@@ -44,24 +46,31 @@ function Paywall({ isOpen, onClose }) {
         </div>
 
         <h3 className="paywall-title">Получи полный доступ</h3>
-        <p className="paywall-subtitle">Убирает все ограничения</p>
+        <p className="paywall-subtitle">
+          Бесплатно доступно только 2 интервью. Дальше выбери пакет:
+        </p>
 
         <ul className="paywall-features">
-          <li>10 интервью в день вместо одного</li>
-          <li>Все уровни сложности</li>
-          <li>Полный разбор каждого интервью</li>
+          <li>Осталось интервью: {interviewAccess.remainingInterviews}</li>
+          <li>Старт: 10 интервью за 500 ⭐</li>
+          <li>Прокачка: 30 интервью за 1299 ⭐</li>
         </ul>
 
-        <div className="paywall-price-wrap">
-          <p className="paywall-price">
-            ⭐ 250 <span className="paywall-price-period">/ месяц</span>
-          </p>
-        </div>
-
-        <button className="paywall-primary-btn" onClick={handleSubscribe} disabled={isPaying}>
-          {isPaying ? "Открываем оплату..." : "Оформить подписку"}
+        <button
+          className="paywall-primary-btn"
+          onClick={() => handleBuyPackage("start")}
+          disabled={isPaying}
+        >
+          {isPaying ? "Открываем оплату..." : "Купить Старт · 500 ⭐"}
         </button>
-        <button className="paywall-secondary-btn" onClick={onClose}>
+        <button
+          className="paywall-secondary-btn"
+          onClick={() => handleBuyPackage("boost")}
+          disabled={isPaying}
+        >
+          {isPaying ? "Открываем оплату..." : "Купить Прокачка · 1299 ⭐"}
+        </button>
+        <button className="history-modal-secondary-btn" onClick={onClose}>
           Не сейчас
         </button>
       </div>

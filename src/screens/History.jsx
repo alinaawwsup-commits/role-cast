@@ -17,8 +17,6 @@ const LEVEL_DESCRIPTIONS = {
   middle: "Мидл: Средний уровень. Умеренное давление и акцент на опыте.",
   senior: "Сеньор: Хард уровень. Жестче вопросы и фокус на результатах.",
 };
-const FREE_DAILY_LIMIT = 1;
-const PRO_DAILY_LIMIT = 10;
 
 function getLevelLabel(level) {
   const levelMap = {
@@ -35,7 +33,7 @@ function getLevelLabel(level) {
 
 function History() {
   const navigate = useNavigate();
-  const { isPremium, interviewsToday, telegramId, refreshInterviewsToday } = useAuth();
+  const { isPremium, interviewAccess, telegramId, refreshInterviewAccess } = useAuth();
   const [matches, setMatches] = useState([]);
   const [activeMatch, setActiveMatch] = useState(null);
   const [isSheetOpen, setSheetOpen] = useState(false);
@@ -76,10 +74,12 @@ function History() {
   );
 
   const openSetup = async () => {
-    const freshCount = await refreshInterviewsToday(telegramId);
-    const effectiveCount = typeof freshCount === "number" ? freshCount : interviewsToday;
-    const dailyLimit = isPremium ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
-    if (effectiveCount >= dailyLimit) {
+    const freshAccess = await refreshInterviewAccess(telegramId);
+    const remainingInterviews =
+      typeof freshAccess?.remainingInterviews === "number"
+        ? freshAccess.remainingInterviews
+        : interviewAccess.remainingInterviews;
+    if (remainingInterviews <= 0) {
       setPaywallOpen(true);
       return;
     }
@@ -88,10 +88,12 @@ function History() {
 
   const startInterview = async () => {
     if (!canStart) return;
-    const freshCount = await refreshInterviewsToday(telegramId);
-    const effectiveCount = typeof freshCount === "number" ? freshCount : interviewsToday;
-    const dailyLimit = isPremium ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
-    if (effectiveCount >= dailyLimit) {
+    const freshAccess = await refreshInterviewAccess(telegramId);
+    const remainingInterviews =
+      typeof freshAccess?.remainingInterviews === "number"
+        ? freshAccess.remainingInterviews
+        : interviewAccess.remainingInterviews;
+    if (remainingInterviews <= 0) {
       setSheetOpen(false);
       setPaywallOpen(true);
       return;

@@ -1,5 +1,18 @@
 const TELEGRAM_API_BASE = "https://api.telegram.org";
-const STARS_PRICE = 250;
+const PACKAGES = {
+  start: {
+    id: "start",
+    title: "Старт",
+    interviews: 10,
+    stars: 500,
+  },
+  boost: {
+    id: "boost",
+    title: "Прокачка",
+    interviews: 30,
+    stars: 1299,
+  },
+};
 
 function getBotToken() {
   const token = process.env.BOT_TOKEN;
@@ -16,14 +29,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { telegramId } = req.body || {};
+    const { telegramId, packageId } = req.body || {};
     if (!telegramId) {
       return res.status(400).json({ ok: false, error: "telegramId is required" });
+    }
+    const selectedPackage = PACKAGES[packageId];
+    if (!selectedPackage) {
+      return res.status(400).json({ ok: false, error: "Unknown packageId" });
     }
 
     const botToken = getBotToken();
     const endpoint = `${TELEGRAM_API_BASE}/bot${botToken}/createInvoiceLink`;
-    const payload = `rolecast_pro_${telegramId}_${Date.now()}`;
+    const payload = `rolecast_pkg_${selectedPackage.id}_${telegramId}_${Date.now()}`;
 
     const tgResponse = await fetch(endpoint, {
       method: "POST",
@@ -31,11 +48,11 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        title: "RoleCast Pro",
-        description: "10 интервью в день, все уровни, полный разбор.",
+        title: `RoleCast · ${selectedPackage.title}`,
+        description: `${selectedPackage.interviews} интервью в пакете`,
         payload,
         currency: "XTR",
-        prices: [{ label: "RoleCast Pro / 30 дней", amount: STARS_PRICE }],
+        prices: [{ label: `${selectedPackage.title} (${selectedPackage.interviews} интервью)`, amount: selectedPackage.stars }],
         provider_token: "",
       }),
     });

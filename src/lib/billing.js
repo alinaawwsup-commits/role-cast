@@ -1,7 +1,7 @@
 import WebApp from "@twa-dev/sdk";
 import { getTelegramId } from "./user";
 
-async function createStarsInvoice() {
+async function createStarsInvoice(packageId) {
   const response = await fetch("/api/stars/create-invoice", {
     method: "POST",
     headers: {
@@ -9,6 +9,7 @@ async function createStarsInvoice() {
     },
     body: JSON.stringify({
       telegramId: getTelegramId(),
+      packageId,
     }),
   });
 
@@ -25,8 +26,8 @@ async function createStarsInvoice() {
   return payload.invoiceLink;
 }
 
-export async function startStarsCheckout({ onPaid, onClosed } = {}) {
-  const invoiceLink = await createStarsInvoice();
+export async function startStarsCheckout({ packageId, onPaid, onClosed } = {}) {
+  const invoiceLink = await createStarsInvoice(packageId);
 
   if (typeof WebApp?.openInvoice === "function") {
     WebApp.openInvoice(invoiceLink, (status) => {

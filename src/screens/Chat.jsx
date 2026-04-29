@@ -141,7 +141,7 @@ function sleep(ms) {
 function Chat() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { telegramId, isPremium, refreshInterviewsToday } = useAuth();
+  const { telegramId, isPremium, refreshInterviewAccess } = useAuth();
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState([]);
   const [replyCount, setReplyCount] = useState(0);
@@ -334,7 +334,7 @@ function Chat() {
           debrief: reviewData || null,
         });
         savedToSupabaseRef.current = true;
-        await refreshInterviewsToday(telegramId);
+        await refreshInterviewAccess(telegramId);
       } catch (error) {
         console.error("Failed to save interview in Supabase", error);
       }
@@ -350,7 +350,7 @@ function Chat() {
     state?.position,
     state?.company,
     state?.level,
-    refreshInterviewsToday,
+    refreshInterviewAccess,
   ]);
 
   useEffect(

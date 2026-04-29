@@ -16,12 +16,10 @@ const LEVEL_DESCRIPTIONS = {
   middle: "Мидл: Средний уровень. Умеренное давление и акцент на опыте.",
   senior: "Сеньор: Хард уровень. Жестче вопросы и фокус на результатах.",
 };
-const FREE_DAILY_LIMIT = 1;
-const PRO_DAILY_LIMIT = 10;
 
 function Home() {
   const navigate = useNavigate();
-  const { isPremium, interviewsToday, telegramId, refreshInterviewsToday } = useAuth();
+  const { isPremium, interviewAccess, telegramId, refreshInterviewAccess } = useAuth();
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [isPaywallOpen, setPaywallOpen] = useState(false);
   const [position, setPosition] = useState("");
@@ -37,11 +35,12 @@ function Home() {
   );
 
   const openSetup = async () => {
-    const freshCount = await refreshInterviewsToday(telegramId);
-    const effectiveCount = typeof freshCount === "number" ? freshCount : interviewsToday;
-    const dailyLimit = isPremium ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
-
-    if (effectiveCount >= dailyLimit) {
+    const freshAccess = await refreshInterviewAccess(telegramId);
+    const remainingInterviews =
+      typeof freshAccess?.remainingInterviews === "number"
+        ? freshAccess.remainingInterviews
+        : interviewAccess.remainingInterviews;
+    if (remainingInterviews <= 0) {
       setPaywallOpen(true);
       return;
     }
@@ -51,10 +50,12 @@ function Home() {
   const startInterview = async () => {
     if (!canStart) return;
 
-    const freshCount = await refreshInterviewsToday(telegramId);
-    const effectiveCount = typeof freshCount === "number" ? freshCount : interviewsToday;
-    const dailyLimit = isPremium ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
-    if (effectiveCount >= dailyLimit) {
+    const freshAccess = await refreshInterviewAccess(telegramId);
+    const remainingInterviews =
+      typeof freshAccess?.remainingInterviews === "number"
+        ? freshAccess.remainingInterviews
+        : interviewAccess.remainingInterviews;
+    if (remainingInterviews <= 0) {
       setSheetOpen(false);
       setPaywallOpen(true);
       return;
@@ -78,8 +79,8 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    refreshInterviewsToday(telegramId);
-  }, [telegramId, refreshInterviewsToday]);
+    refreshInterviewAccess(telegramId);
+  }, [telegramId, refreshInterviewAccess]);
 
   return (
     <section className="home-screen">

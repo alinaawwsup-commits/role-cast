@@ -3,23 +3,24 @@ import { startStarsCheckout } from "../lib/billing";
 import { useState } from "react";
 
 const FEATURES = [
-  "10 интервью в день",
-  "Все уровни сложности",
-  "Детальный разбор каждого интервью",
+  "Старт: 10 интервью за 500 ⭐",
+  "Прокачка: 30 интервью за 1299 ⭐",
+  "Без автопродления",
 ];
 
 function Subscription() {
-  const { isPremium, refreshPremiumStatus, telegramId } = useAuth();
-  const isActiveSubscription = isPremium;
+  const { interviewAccess, refreshPremiumStatus, refreshInterviewAccess, telegramId } = useAuth();
   const [isPaying, setIsPaying] = useState(false);
 
-  const handleSubscribe = async () => {
+  const handleBuyPackage = async (packageId) => {
     if (isPaying) return;
     setIsPaying(true);
     try {
       await startStarsCheckout({
+        packageId,
         onPaid: async () => {
           await refreshPremiumStatus(telegramId);
+          await refreshInterviewAccess(telegramId);
         },
         onClosed: () => {
           setIsPaying(false);
@@ -33,57 +34,49 @@ function Subscription() {
 
   return (
     <section className="subscription-screen">
-      <h1 className="subscription-title">Подписка</h1>
+      <h1 className="subscription-title">Пакеты интервью</h1>
 
-      {isActiveSubscription ? (
-        <article className="subscription-active-card">
-          <p className="subscription-active-badge">Активна</p>
-          <h2 className="subscription-active-name">Pro · ⭐ 250 / месяц</h2>
-          <p className="subscription-active-date">Действует до 14 июня 2026</p>
-          <ul className="subscription-features in-card">
-            {FEATURES.map((feature) => (
-              <li key={feature} className="subscription-feature-item modern">
-                <span className="subscription-feature-dot modern" />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-        </article>
-      ) : null}
+      <article className="subscription-active-card">
+        <p className="subscription-active-badge">Текущий баланс</p>
+        <h2 className="subscription-active-name">{interviewAccess.remainingInterviews} интервью осталось</h2>
+        <p className="subscription-active-date">
+          Использовано: {interviewAccess.usedInterviews} из {interviewAccess.totalAllowed}
+        </p>
+      </article>
 
-      {!isActiveSubscription && (
-        <article className="subscription-inactive-card">
-          <section className="subscription-inactive-head">
-            <h2 className="subscription-inactive-title">Получи полный доступ</h2>
-            <p className="subscription-inactive-subtitle">
-              Сейчас у тебя 1 бесплатное интервью в день.
-              <br />
-              Оформи подписку, чтобы снять ограничения.
-            </p>
-          </section>
+      <article className="subscription-inactive-card">
+        <section className="subscription-inactive-head">
+          <h2 className="subscription-inactive-title">Выбери пакет</h2>
+          <p className="subscription-inactive-subtitle">
+            Бесплатно доступно 2 интервью на аккаунт.
+          </p>
+        </section>
 
-          <ul className="subscription-features in-card">
-            {FEATURES.map((feature) => (
-              <li key={feature} className="subscription-feature-item modern">
-                <span className="subscription-feature-dot modern" />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
+        <ul className="subscription-features in-card">
+          {FEATURES.map((feature) => (
+            <li key={feature} className="subscription-feature-item modern">
+              <span className="subscription-feature-dot modern" />
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
 
-          <article className="subscription-price-card in-card">
-            <p className="subscription-price-badge">Pro тариф</p>
-            <p className="subscription-price-value">
-              ⭐ 250 <span className="subscription-price-period">/ месяц</span>
-            </p>
-          </article>
-
-          <button className="subscription-buy-btn" onClick={handleSubscribe} disabled={isPaying}>
-            {isPaying ? "Открываем оплату..." : "Оформить подписку"}
-          </button>
-          <p className="subscription-payment-note">Без автопродления</p>
-        </article>
-      )}
+        <button
+          className="subscription-buy-btn"
+          onClick={() => handleBuyPackage("start")}
+          disabled={isPaying}
+        >
+          {isPaying ? "Открываем оплату..." : "Купить Старт · 500 ⭐"}
+        </button>
+        <button
+          className="subscription-cancel-btn"
+          onClick={() => handleBuyPackage("boost")}
+          disabled={isPaying}
+        >
+          {isPaying ? "Открываем оплату..." : "Купить Прокачка · 1299 ⭐"}
+        </button>
+        <p className="subscription-payment-note">Без автопродления</p>
+      </article>
 
     </section>
   );
