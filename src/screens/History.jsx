@@ -157,7 +157,7 @@ function History() {
                       </span>
                     </div>
                     <p className="history-match-meta">
-                      {match.company} · {getLevelLabel(match.level)} · {match.replies} · {match.date}
+                      {match.company} · {getLevelLabel(match.level)} · {match.date}
                     </p>
                   </div>
                 </div>
