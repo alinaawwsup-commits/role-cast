@@ -26,11 +26,28 @@ async function createStarsInvoice(packageId) {
   return payload.invoiceLink;
 }
 
+function toTelegramInvoiceParam(invoiceLink) {
+  if (typeof invoiceLink !== "string") return invoiceLink;
+  const trimmed = invoiceLink.trim();
+  const match = trimmed.match(/^https?:\/\/t\.me\/(.+)$/i);
+  return match ? match[1] : trimmed;
+}
+
 export async function startStarsCheckout({ packageId, onPaid, onClosed } = {}) {
   const invoiceLink = await createStarsInvoice(packageId);
 
   if (typeof WebApp?.openInvoice === "function") {
-    WebApp.openInvoice(invoiceLink, (status) => {
+    const invoiceParam = toTelegramInvoiceParam(invoiceLink);
+    let callbackCalled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (!callbackCalled) {
+        onClosed?.("timeout");
+      }
+    }, 12000);
+
+    WebApp.openInvoice(invoiceParam, (status) => {
+      callbackCalled = true;
+      window.clearTimeout(timeoutId);
       if (status === "paid") {
         onPaid?.();
       }
