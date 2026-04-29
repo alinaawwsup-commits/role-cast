@@ -1,6 +1,33 @@
 import Modal from "./Modal";
+import { useState } from "react";
+import { startStarsCheckout } from "../lib/billing";
+import { useAuth } from "../context/AuthContext";
 
 function Paywall({ isOpen, onClose }) {
+  const { refreshPremiumStatus, telegramId } = useAuth();
+  const [isPaying, setIsPaying] = useState(false);
+
+  const handleSubscribe = async () => {
+    if (isPaying) return;
+    setIsPaying(true);
+    try {
+      await startStarsCheckout({
+        onPaid: async () => {
+          await refreshPremiumStatus(telegramId);
+        },
+        onClosed: async (status) => {
+          if (status === "paid") {
+            onClose?.();
+          }
+          setIsPaying(false);
+        },
+      });
+    } catch (error) {
+      console.error("Failed to open Stars checkout", error);
+      setIsPaying(false);
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} closeOnOverlay={false}>
       <div className="paywall-modal">
@@ -31,8 +58,8 @@ function Paywall({ isOpen, onClose }) {
           </p>
         </div>
 
-        <button className="paywall-primary-btn" onClick={() => console.log("subscribe")}>
-          Оформить подписку
+        <button className="paywall-primary-btn" onClick={handleSubscribe} disabled={isPaying}>
+          {isPaying ? "Открываем оплату..." : "Оформить подписку"}
         </button>
         <button className="paywall-secondary-btn" onClick={onClose}>
           Не сейчас

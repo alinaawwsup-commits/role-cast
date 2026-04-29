@@ -77,8 +77,12 @@ CREATE TABLE users (
   id uuid default gen_random_uuid() primary key,
   telegram_id text unique not null,
   is_premium boolean default false,
+  premium_until timestamptz,
   created_at timestamptz default now()
 );
+
+-- Если таблица users уже существует:
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_until timestamptz;
 */
 
 export function getTelegramId() {
@@ -152,19 +156,35 @@ export async function saveInterview(data) {
 }
 
 export async function isPremiumUser(telegramId) {
+  const isActivePremium = (row) => {
+    if (!row) return false;
+    const untilRaw = row.premium_until;
+    if (untilRaw) {
+      const untilTs = new Date(untilRaw).getTime();
+      if (!Number.isNaN(untilTs)) {
+        return untilTs > Date.now();
+      }
+    }
+    return Boolean(row.is_premium);
+  };
+
   if (!supabase) {
     const map = readLocalPremiumMap();
     if (typeof map[telegramId] === "undefined") {
       map[telegramId] = false;
       writeLocalPremiumMap(map);
     }
-    return Boolean(map[telegramId]);
+    const value = map[telegramId];
+    if (typeof value === "object" && value !== null) {
+      return isActivePremium(value);
+    }
+    return Boolean(value);
   }
 
   try {
     const { data, error } = await supabase
       .from("users")
-      .select("is_premium")
+      .select("is_premium,premium_until")
       .eq("telegram_id", telegramId)
       .maybeSingle();
 
@@ -173,22 +193,26 @@ export async function isPremiumUser(telegramId) {
     if (!data) {
       const { data: inserted, error: insertError } = await supabase
         .from("users")
-        .insert({ telegram_id: telegramId, is_premium: false })
-        .select("is_premium")
+        .insert({ telegram_id: telegramId, is_premium: false, premium_until: null })
+        .select("is_premium,premium_until")
         .single();
 
       if (insertError) throw insertError;
-      return Boolean(inserted?.is_premium);
+      return isActivePremium(inserted);
     }
 
-    return Boolean(data.is_premium);
+    return isActivePremium(data);
   } catch {
     const map = readLocalPremiumMap();
     if (typeof map[telegramId] === "undefined") {
       map[telegramId] = false;
       writeLocalPremiumMap(map);
     }
-    return Boolean(map[telegramId]);
+    const value = map[telegramId];
+    if (typeof value === "object" && value !== null) {
+      return isActivePremium(value);
+    }
+    return Boolean(value);
   }
 }
 

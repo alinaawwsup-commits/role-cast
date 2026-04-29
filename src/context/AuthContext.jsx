@@ -22,6 +22,19 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const refreshPremiumStatus = async (idOverride) => {
+    const effectiveId = idOverride || telegramId;
+    if (!effectiveId) return null;
+    try {
+      const nextPremium = await isPremiumUser(effectiveId);
+      setIsPremium(nextPremium);
+      return nextPremium;
+    } catch (error) {
+      console.error("Failed to refresh premium status", error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       setAuthLoading(true);
@@ -44,6 +57,16 @@ export function AuthProvider({ children }) {
     load();
   }, []);
 
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshPremiumStatus();
+      refreshInterviewsToday();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [telegramId]);
+
   const value = useMemo(
     () => ({
       telegramId,
@@ -51,6 +74,7 @@ export function AuthProvider({ children }) {
       interviewsToday,
       isAuthLoading,
       refreshInterviewsToday,
+      refreshPremiumStatus,
     }),
     [telegramId, isPremium, interviewsToday, isAuthLoading]
   );

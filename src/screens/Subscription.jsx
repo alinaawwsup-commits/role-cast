@@ -1,4 +1,6 @@
 import { useAuth } from "../context/AuthContext";
+import { startStarsCheckout } from "../lib/billing";
+import { useState } from "react";
 
 const FEATURES = [
   "10 интервью в день",
@@ -7,8 +9,27 @@ const FEATURES = [
 ];
 
 function Subscription() {
-  const { isPremium } = useAuth();
+  const { isPremium, refreshPremiumStatus, telegramId } = useAuth();
   const isActiveSubscription = isPremium;
+  const [isPaying, setIsPaying] = useState(false);
+
+  const handleSubscribe = async () => {
+    if (isPaying) return;
+    setIsPaying(true);
+    try {
+      await startStarsCheckout({
+        onPaid: async () => {
+          await refreshPremiumStatus(telegramId);
+        },
+        onClosed: () => {
+          setIsPaying(false);
+        },
+      });
+    } catch (error) {
+      console.error("Failed to open Stars checkout", error);
+      setIsPaying(false);
+    }
+  };
 
   return (
     <section className="subscription-screen">
@@ -57,7 +78,9 @@ function Subscription() {
             </p>
           </article>
 
-          <button className="subscription-buy-btn">Оформить подписку</button>
+          <button className="subscription-buy-btn" onClick={handleSubscribe} disabled={isPaying}>
+            {isPaying ? "Открываем оплату..." : "Оформить подписку"}
+          </button>
           <p className="subscription-payment-note">Без автопродления</p>
         </article>
       )}
