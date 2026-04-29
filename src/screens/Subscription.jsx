@@ -18,7 +18,7 @@ function Subscription() {
         <>
           <article className="subscription-active-card">
             <p className="subscription-active-badge">Активна</p>
-            <h2 className="subscription-active-name">Pro · 250₽ / мес</h2>
+            <h2 className="subscription-active-name">Pro · 350₽ / мес</h2>
             <p className="subscription-active-date">Продлевается 14 июня 2026</p>
             <ul className="subscription-features in-card">
               {FEATURES.map((feature) => (
@@ -57,7 +57,7 @@ function Subscription() {
           <article className="subscription-price-card in-card">
             <p className="subscription-price-badge">Pro тариф</p>
             <p className="subscription-price-value">
-              250₽ <span className="subscription-price-period">/ мес</span>
+              350₽ <span className="subscription-price-period">/ мес</span>
             </p>
           </article>
 
