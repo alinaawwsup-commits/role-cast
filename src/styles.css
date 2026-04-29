@@ -1461,14 +1461,37 @@ select {
   border: 1px solid #eadccd;
   border-radius: 14px;
   background: linear-gradient(165deg, #fffefc 0%, #f8f3eb 100%);
-  padding: 11px 12px;
+  padding: 10px 11px;
   box-shadow: 0 4px 10px rgba(43, 43, 43, 0.05);
+  text-align: left;
 }
 
 .package-card.featured {
-  border-color: #f2c3ad;
-  background: linear-gradient(165deg, #fff8f1 0%, #ffeede 100%);
-  box-shadow: 0 8px 16px rgba(232, 96, 60, 0.14);
+  border-color: #ea8f6a;
+  background: linear-gradient(165deg, #fff4e8 0%, #ffe4cf 100%);
+  box-shadow: 0 10px 20px rgba(232, 96, 60, 0.2);
+}
+
+.package-card-badge {
+  margin: 0 0 7px;
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(232, 96, 60, 0.14);
+  color: #b4502f;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.package-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.package-card-main {
+  min-width: 0;
 }
 
 .package-card-title {
@@ -1479,28 +1502,24 @@ select {
 }
 
 .package-card-meta {
-  margin: 4px 0 0;
+  margin: 3px 0 0;
   font-size: 12px;
   color: var(--color-muted);
 }
 
-.package-card-price {
-  margin: 8px 0 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-accent);
-}
-
 .package-buy-btn {
-  margin-top: 10px;
-  width: 100%;
-  height: 40px;
+  margin-top: 0;
+  width: auto;
+  min-width: 146px;
+  height: 38px;
   border: 0;
   border-radius: 10px;
   background: linear-gradient(165deg, #f07d56 0%, #e8603c 85%);
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  padding: 0 10px;
+  white-space: nowrap;
 }
 
 .subscription-screen {

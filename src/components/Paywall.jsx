@@ -63,16 +63,20 @@ function Paywall({ isOpen, onClose }) {
               key={pkg.id}
               className={`package-card ${pkg.featured ? "featured" : ""}`.trim()}
             >
-              <p className="package-card-title">{pkg.title}</p>
-              <p className="package-card-meta">{pkg.interviews} интервью</p>
-              <p className="package-card-price">{pkg.stars} ⭐</p>
-              <button
-                className="package-buy-btn"
-                onClick={() => handleBuyPackage(pkg.id)}
-                disabled={isPaying}
-              >
-                {isPaying ? "Открываем оплату..." : "Купить"}
-              </button>
+              {pkg.featured && <p className="package-card-badge">Выгодно</p>}
+              <div className="package-card-row">
+                <div className="package-card-main">
+                  <p className="package-card-title">{pkg.title}</p>
+                  <p className="package-card-meta">{pkg.interviews} интервью</p>
+                </div>
+                <button
+                  className="package-buy-btn"
+                  onClick={() => handleBuyPackage(pkg.id)}
+                  disabled={isPaying}
+                >
+                  {isPaying ? "Оплата..." : `Купить за ${pkg.stars} ⭐`}
+                </button>
+              </div>
             </article>
           ))}
         </div>
