@@ -52,7 +52,7 @@ function Subscription() {
         <section className="subscription-inactive-head">
           <h2 className="subscription-inactive-title">Выбери пакет</h2>
           <p className="subscription-inactive-subtitle">
-            Бесплатно доступно 2 интервью на аккаунт.
+            Бесплатно доступно 1 интервью на аккаунт.
           </p>
         </section>
 

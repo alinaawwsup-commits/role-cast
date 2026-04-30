@@ -60,7 +60,7 @@ function Paywall({ isOpen, onClose }) {
 
         <h3 className="paywall-title">Получи полный доступ</h3>
         <p className="paywall-subtitle">
-          Бесплатно доступно только 2 интервью. Дальше выбери пакет:
+          Бесплатно доступно только 1 интервью. Дальше выбери пакет:
         </p>
 
         <p className="paywall-balance-note">Сейчас доступно: {interviewAccess.remainingInterviews} интервью</p>

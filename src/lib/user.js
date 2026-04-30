@@ -4,7 +4,7 @@ const LOCAL_PREMIUM_KEY = "local-premium-user-v1";
 const LOCAL_INTERVIEWS_KEY = "local-interviews-v1";
 const LOCAL_HISTORY_KEY = "tg-app-interview-history-v1";
 const LOCAL_CREDITS_KEY = "local-interview-credits-v1";
-const FREE_INTERVIEWS_TOTAL = 2;
+const FREE_INTERVIEWS_TOTAL = 1;
 
 function readLocalInterviews() {
   try {
