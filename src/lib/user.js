@@ -30,6 +30,11 @@ function getLocalInterviewsToday(telegramId) {
   ).length;
 }
 
+function getLocalInterviewsTotal(telegramId) {
+  const list = readLocalInterviews();
+  return list.filter((item) => item.telegram_id === telegramId).length;
+}
+
 function getHistoryInterviewsToday() {
   try {
     const raw = localStorage.getItem(LOCAL_HISTORY_KEY);
@@ -42,6 +47,17 @@ function getHistoryInterviewsToday() {
     return list.filter(
       (item) => item?.createdAt && new Date(item.createdAt).getTime() >= startOfTodayLocal.getTime()
     ).length;
+  } catch {
+    return 0;
+  }
+}
+
+function getHistoryInterviewsTotal() {
+  try {
+    const raw = localStorage.getItem(LOCAL_HISTORY_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(list)) return 0;
+    return list.length;
   } catch {
     return 0;
   }
@@ -133,8 +149,8 @@ export async function getInterviewsToday(telegramId) {
 }
 
 async function getTotalInterviews(telegramId) {
-  const localCount = getLocalInterviewsToday(telegramId);
-  const historyCount = getHistoryInterviewsToday();
+  const localCount = getLocalInterviewsTotal(telegramId);
+  const historyCount = getHistoryInterviewsTotal();
 
   if (!supabase) {
     return Math.max(localCount, historyCount);
