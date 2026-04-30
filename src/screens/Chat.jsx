@@ -155,12 +155,14 @@ function Chat() {
   const [reviewError, setReviewError] = useState("");
   const [reviewData, setReviewData] = useState(null);
   const [isPaywallOpen, setPaywallOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const runRef = useRef({ started: false, requestId: 0 });
   const interviewIdRef = useRef(`int-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const messagesEndRef = useRef(null);
   const finishTimeoutRef = useRef(null);
   const savedToSupabaseRef = useRef(false);
   const hrNameRef = useRef(HR_NAMES[Math.floor(Math.random() * HR_NAMES.length)]);
+  const recognitionRef = useRef(null);
 
   const isReadOnly = Boolean(state?.readOnly);
   const isClosed = Boolean(state?.closed);
@@ -187,6 +189,11 @@ function Chat() {
   const progressPercent = Math.min((replyCount / MAX_REPLIES) * 100, 100);
   const progressColor = getProgressTone(replyCount);
   const hasReviewAccess = interviewAccess.remainingInterviews > 0;
+  const SpeechRecognitionCtor =
+    typeof window !== "undefined"
+      ? window.SpeechRecognition || window.webkitSpeechRecognition
+      : undefined;
+  const canUseSpeech = typeof SpeechRecognitionCtor === "function";
 
   const closeReadOnlyChat = () => navigate("/history");
   const requestFinishChat = () => setFinishModalOpen(true);
@@ -359,9 +366,45 @@ function Chat() {
       if (finishTimeoutRef.current) {
         window.clearTimeout(finishTimeoutRef.current);
       }
+      if (recognitionRef.current) {
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onend = null;
+        recognitionRef.current.stop();
+      }
     },
     []
   );
+
+  const startVoiceInput = () => {
+    if (!canUseSpeech || isReadOnly || isLoading || gameOver || isRecording) return;
+    try {
+      const recognition = new SpeechRecognitionCtor();
+      recognition.lang = "ru-RU";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onresult = (event) => {
+        const transcript = event?.results?.[0]?.[0]?.transcript?.trim() || "";
+        if (transcript) {
+          setDraft(transcript);
+        }
+      };
+      recognition.onerror = () => {
+        setIsRecording(false);
+      };
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognitionRef.current = recognition;
+      setIsRecording(true);
+      recognition.start();
+    } catch (error) {
+      console.error("Voice input is unavailable", error);
+      setIsRecording(false);
+    }
+  };
 
   const sendUserMessage = async () => {
     const userText = draft.trim();
@@ -471,31 +514,71 @@ function Chat() {
           }}
           disabled={isReadOnly || isLoading || gameOver}
         />
-        {!isReadOnly && draft.trim() && (
-          <button
-            className="chat-send-btn"
-            aria-label="Отправить сообщение"
-            onClick={sendUserMessage}
-            disabled={isLoading || gameOver}
-          >
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M21 3L10 14"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M21 3L14 21L10 14L3 10L21 3Z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        )}
+        <div className="chat-input-actions">
+          {!isReadOnly && canUseSpeech && (
+            <button
+              className={`chat-mic-btn ${isRecording ? "recording" : ""}`.trim()}
+              aria-label="Голосовой ввод"
+              onClick={startVoiceInput}
+              disabled={isLoading || gameOver || isRecording}
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect
+                  x="9"
+                  y="3"
+                  width="6"
+                  height="12"
+                  rx="3"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+                <path
+                  d="M6 11.2C6 14.5 8.69 17.2 12 17.2C15.31 17.2 18 14.5 18 11.2"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M12 17.2V20.2"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M9.5 20.2H14.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          )}
+          {!isReadOnly && draft.trim() && (
+            <button
+              className="chat-send-btn"
+              aria-label="Отправить сообщение"
+              onClick={sendUserMessage}
+              disabled={isLoading || gameOver}
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M21 3L10 14"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M21 3L14 21L10 14L3 10L21 3Z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
       </footer>
 
       <Modal isOpen={isFinishModalOpen} onClose={() => setFinishModalOpen(false)}>
