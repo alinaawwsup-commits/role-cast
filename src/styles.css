@@ -1378,6 +1378,23 @@ select {
   padding: 16px 16px 14px;
 }
 
+.paywall-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.paywall-dismiss-btn {
+  width: 100%;
+  height: 42px;
+  border: 0.5px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 500;
+}
+
 .paywall-star-wrap {
   width: 56px;
   height: 56px;

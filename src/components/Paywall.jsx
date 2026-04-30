@@ -45,53 +45,54 @@ function Paywall({ isOpen, onClose }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} closeOnOverlay={false}>
-      <div className="paywall-modal">
-        <div className="paywall-star-wrap">
-          <svg className="paywall-star" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M12 2.6L14.82 8.31L21.12 9.22L16.56 13.67L17.63 19.96L12 17L6.37 19.96L7.44 13.67L2.88 9.22L9.18 8.31L12 2.6Z"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
+      <div className="paywall-wrap">
+        <div className="paywall-modal">
+          <div className="paywall-star-wrap">
+            <svg className="paywall-star" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 2.6L14.82 8.31L21.12 9.22L16.56 13.67L17.63 19.96L12 17L6.37 19.96L7.44 13.67L2.88 9.22L9.18 8.31L12 2.6Z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
 
-        <h3 className="paywall-title">Получи полный доступ</h3>
-        <p className="paywall-subtitle">
-          Бесплатно доступно только 1 интервью. Дальше выбери пакет:
-        </p>
+          <h3 className="paywall-title">Получи полный доступ</h3>
+          <p className="paywall-subtitle">
+            Бесплатно доступно только 1 интервью. Дальше выбери пакет:
+          </p>
 
-        <p className="paywall-balance-note">Сейчас доступно: {interviewAccess.remainingInterviews} интервью</p>
+          <p className="paywall-balance-note">Сейчас доступно: {interviewAccess.remainingInterviews} интервью</p>
 
-        <div className="package-grid paywall-package-grid">
-          {PACKAGES.map((pkg) => (
-            <article
-              key={pkg.id}
-              className={`package-card ${pkg.featured ? "featured" : ""}`.trim()}
-            >
-              <div className="package-card-row">
-                <div className="package-card-main">
-                  <p className="package-card-title">{pkg.title}</p>
-                  <p className="package-card-meta">{pkg.interviews} интервью</p>
+          <div className="package-grid paywall-package-grid">
+            {PACKAGES.map((pkg) => (
+              <article
+                key={pkg.id}
+                className={`package-card ${pkg.featured ? "featured" : ""}`.trim()}
+              >
+                <div className="package-card-row">
+                  <div className="package-card-main">
+                    <p className="package-card-title">{pkg.title}</p>
+                    <p className="package-card-meta">{pkg.interviews} интервью</p>
+                  </div>
+                  <button
+                    className="package-buy-btn"
+                    onClick={() => handleBuyPackage(pkg.id)}
+                    disabled={isPaying}
+                  >
+                    {isPaying && activePackageId === pkg.id
+                      ? "Оплата..."
+                      : `Купить за ${pkg.stars} ⭐`}
+                  </button>
                 </div>
-                <button
-                  className="package-buy-btn"
-                  onClick={() => handleBuyPackage(pkg.id)}
-                  disabled={isPaying}
-                >
-                  {isPaying && activePackageId === pkg.id
-                    ? "Оплата..."
-                    : `Купить за ${pkg.stars} ⭐`}
-                </button>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))}
+          </div>
+          {paymentError && <p className="paywall-balance-note">{paymentError}</p>}
         </div>
-        {paymentError && <p className="paywall-balance-note">{paymentError}</p>}
-
-        <button className="history-modal-secondary-btn" onClick={onClose}>
+        <button className="paywall-dismiss-btn" onClick={onClose}>
           Не сейчас
         </button>
       </div>
