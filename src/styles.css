@@ -527,7 +527,7 @@ select {
 
 .history-match-position {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -551,7 +551,7 @@ select {
 }
 
 .history-match-meta {
-  margin: 8px 0 0;
+  margin: 4px 0 0;
   font-size: 11px;
   color: var(--color-muted);
   line-height: 1.45;
@@ -1897,7 +1897,7 @@ select {
   }
 
   .history-match-position {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .chat-title {
