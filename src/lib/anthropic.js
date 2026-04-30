@@ -22,6 +22,8 @@ export function buildSystemPrompt(position, company, level) {
 - Если кандидат отвечает сильно с конкретными фактами и цифрами — 
   немного смягчаешься но не сдаёшься сразу
 - Знаешь специфику компании ${company} и задаёшь релевантные вопросы
+- Учитываешь профессию кандидата (${position}), нишу/контекст компании (${company}) и уровень (${level}) в каждом вопросе
+- Если кандидат уходит в оффтоп, пишет бред, токсичность или мат — сразу жёстко останавливаешь интервью
 
 Уровень кандидата: ${level}.
 Адаптируй сложность вопросов под этот уровень:
@@ -44,6 +46,14 @@ export function buildSystemPrompt(position, company, level) {
   в конце напиши ТОЛЬКО эту фразу на отдельной строке: [REJECTED]
 - Выноси вердикт не раньше чем после 10-й реплики кандидата
 - После вердикта больше ничего не пиши
+
+Немедленное завершение интервью (исключение из правила 10 реплик):
+- Если кандидат пишет бессмысленный текст, не относящийся к работе/вакансии, оскорбления, токсичные или нецензурные сообщения:
+  1) Коротко и жёстко сообщи, что интервью прекращено из-за непрофессиональной коммуникации
+  2) На новой строке выведи [REJECTED]
+  3) После этого больше ничего не пиши
+- Не предупреждай много раз: достаточно одного нарушения для завершения
+- Не переходи в дружеский или шуточный тон в таких случаях
 
 Важно:
 - Всегда отвечай на том языке на котором пишет кандидат
@@ -97,6 +107,19 @@ function scoreAnswer(text) {
   return score;
 }
 
+function shouldHardReject(text) {
+  const normalized = String(text || "").toLowerCase();
+  if (!normalized.trim()) return false;
+
+  const profanityPattern =
+    /\b(бля|бляд|сук|хуй|хуе|пизд|еба|еби|ебн|нах|нахуй|мраз|долбо|идиот|туп(ой|ая)|fuck|shit|bitch)\b/i;
+  const offTopicPattern =
+    /\b(анекдот|мем|гороскоп|астролог|крипта|ставк|казино|порно|секс|политик|религ|рэп батл|котик|играю в доту)\b/i;
+  const gibberishPattern = /^([^а-яa-z0-9]{0,3}|[а-яa-z]{1,2})$/i;
+
+  return profanityPattern.test(normalized) || offTopicPattern.test(normalized) || gibberishPattern.test(normalized);
+}
+
 function getMockInterviewReply(messages, systemPrompt) {
   const { position, company, hrName } = getInterviewContext(systemPrompt);
   const userMessages = messages.filter(
@@ -107,6 +130,11 @@ function getMockInterviewReply(messages, systemPrompt) {
   const turns = userMessages.length;
   const totalScore = userMessages.reduce((acc, message) => acc + scoreAnswer(message.content), 0);
   const avgScore = turns > 0 ? totalScore / turns : 0;
+  const hasHardRejectSignal = userMessages.some((message) => shouldHardReject(message.content));
+
+  if (hasHardRejectSignal) {
+    return "Останавливаю интервью. Формат ответов не соответствует профессиональной коммуникации для этой роли.\n[REJECTED]";
+  }
 
   if (turns >= 10) {
     const accepted = avgScore >= 1 || (turns >= 12 && avgScore >= 0.5);
