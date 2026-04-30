@@ -1008,7 +1008,7 @@ select {
   max-width: 88%;
   border-radius: 14px;
   padding: 10px 12px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.42;
   box-shadow: 0 3px 10px rgba(43, 43, 43, 0.045);
 }
@@ -1608,10 +1608,29 @@ select {
 
 .subscription-active-name {
   margin: 0;
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 500;
   letter-spacing: -0.015em;
   color: var(--color-text);
+}
+
+.subscription-screen .package-card.featured {
+  border-color: #e8603c;
+  background: linear-gradient(165deg, #f07d56 0%, #e8603c 85%);
+  box-shadow: 0 12px 22px rgba(232, 96, 60, 0.3);
+}
+
+.subscription-screen .package-card.featured .package-card-title {
+  color: #fff;
+}
+
+.subscription-screen .package-card.featured .package-card-meta {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.subscription-screen .package-card.featured .package-buy-btn {
+  background: #fff;
+  color: #e8603c;
 }
 
 .subscription-active-date {
@@ -1870,7 +1889,7 @@ select {
 
   .chat-bubble {
     max-width: 90%;
-    font-size: 12.5px;
+    font-size: 13.5px;
   }
 
   .subscription-inactive-title {

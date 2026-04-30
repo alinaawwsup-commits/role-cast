@@ -249,7 +249,7 @@ function Chat() {
 
     try {
       const response = await sendMessage(toAnthropicRequestMessages(nextMessages), systemPrompt);
-      await sleep(1000);
+      await sleep(450);
       if (runRef.current.requestId !== currentRequestId || gameOver) return;
 
       const rawText = extractTextFromAnthropicResponse(response);
