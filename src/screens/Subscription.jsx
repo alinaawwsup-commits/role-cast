@@ -7,6 +7,8 @@ const PACKAGES = [
   { id: "battle", title: "Боевой режим", interviews: 10, stars: 300, featured: true },
   { id: "boost", title: "Прокачка", interviews: 25, stars: 600 },
 ];
+const PAYMENT_REFRESH_RETRIES = 6;
+const PAYMENT_REFRESH_DELAY_MS = 700;
 
 function Subscription() {
   const { interviewAccess, refreshPremiumStatus, refreshInterviewAccess, telegramId } = useAuth();
@@ -14,17 +16,30 @@ function Subscription() {
   const [activePackageId, setActivePackageId] = useState("");
   const [paymentError, setPaymentError] = useState("");
 
+  const refreshBalanceAfterPayment = async (beforeRemaining) => {
+    await refreshPremiumStatus(telegramId);
+    for (let attempt = 0; attempt < PAYMENT_REFRESH_RETRIES; attempt += 1) {
+      const access = await refreshInterviewAccess(telegramId);
+      const nextRemaining =
+        typeof access?.remainingInterviews === "number"
+          ? access.remainingInterviews
+          : interviewAccess.remainingInterviews;
+      if (nextRemaining > beforeRemaining) return;
+      await new Promise((resolve) => window.setTimeout(resolve, PAYMENT_REFRESH_DELAY_MS));
+    }
+  };
+
   const handleBuyPackage = async (packageId) => {
     if (isPaying) return;
     setPaymentError("");
     setIsPaying(true);
     setActivePackageId(packageId);
+    const beforeRemaining = Number(interviewAccess.remainingInterviews || 0);
     try {
       await startStarsCheckout({
         packageId,
         onPaid: async () => {
-          await refreshPremiumStatus(telegramId);
-          await refreshInterviewAccess(telegramId);
+          await refreshBalanceAfterPayment(beforeRemaining);
         },
         onClosed: () => {
           setIsPaying(false);
