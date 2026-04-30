@@ -206,7 +206,6 @@ function Chat() {
   );
   const progressPercent = Math.min((replyCount / MAX_REPLIES) * 100, 100);
   const progressColor = getProgressTone(replyCount);
-  const hasReviewAccess = interviewAccess.remainingInterviews > 0;
   const SpeechRecognitionCtor =
     typeof window !== "undefined"
       ? window.SpeechRecognition || window.webkitSpeechRecognition
@@ -706,70 +705,14 @@ function Chat() {
 
               <section className="history-modal-section">
                 <h4 className="history-modal-section-title bad">Что улучшить</h4>
-                {hasReviewAccess ? (
-                  <p className="history-modal-section-text bad-bg">{reviewData.whatToImprove}</p>
-                ) : (
-                  <div className="review-locked-panel">
-                    <div className="review-locked-head">
-                      <svg className="review-locked-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M8 10V7.5C8 5.57 9.57 4 11.5 4C13.43 4 15 5.57 15 7.5V10"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                        />
-                        <rect
-                          x="6"
-                          y="10"
-                          width="11"
-                          height="9"
-                          rx="2"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                        />
-                      </svg>
-                      <p className="review-locked-text">Доступно в Pro</p>
-                    </div>
-                    <button className="review-locked-btn" onClick={() => setPaywallOpen(true)}>
-                      Получить Pro
-                    </button>
-                  </div>
-                )}
+                <p className="history-modal-section-text bad-bg">{reviewData.whatToImprove}</p>
               </section>
 
               <section className="history-modal-section">
                 <h4 className="history-modal-section-title neutral">Лучший ответ</h4>
-                {hasReviewAccess ? (
-                  <p className="history-modal-section-text neutral-bg best-answer">
-                    {reviewData.bestAnswer}
-                  </p>
-                ) : (
-                  <div className="review-locked-panel">
-                    <div className="review-locked-head">
-                      <svg className="review-locked-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M8 10V7.5C8 5.57 9.57 4 11.5 4C13.43 4 15 5.57 15 7.5V10"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                        />
-                        <rect
-                          x="6"
-                          y="10"
-                          width="11"
-                          height="9"
-                          rx="2"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                        />
-                      </svg>
-                      <p className="review-locked-text">Доступно в Pro</p>
-                    </div>
-                    <button className="review-locked-btn" onClick={() => setPaywallOpen(true)}>
-                      Получить Pro
-                    </button>
-                  </div>
-                )}
+                <p className="history-modal-section-text neutral-bg best-answer">
+                  {reviewData.bestAnswer}
+                </p>
               </section>
 
               <button className="history-modal-secondary-btn chat-review-home-btn" onClick={goHome}>
