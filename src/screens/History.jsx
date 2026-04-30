@@ -67,7 +67,6 @@ function History() {
 
   const statusLabel = activeMatch?.status === "accepted" ? "Оффер" : "Отказ";
   const hasMatches = matches.length > 0;
-  const hasReviewAccess = interviewAccess.remainingInterviews > 0;
   const canStart = position.trim() && company.trim();
   const statusText = useMemo(
     () => LEVEL_DESCRIPTIONS[selectedLevel.id],
@@ -312,34 +311,16 @@ function History() {
 
             <section className="history-modal-section">
               <h4 className="history-modal-section-title bad">Что можно лучше</h4>
-              {hasReviewAccess ? (
-                <p className="history-modal-section-text bad-bg">
-                  {activeMatch.review?.whatToImprove || "Попробуй пройти интервью ещё раз."}
-                </p>
-              ) : (
-                <div className="review-locked-block bad-bg">
-                  <p className="review-locked-title">Доступно в Pro</p>
-                  <p className="review-locked-text">
-                    Подключи Pro, чтобы увидеть персональные рекомендации по улучшению.
-                  </p>
-                </div>
-              )}
+              <p className="history-modal-section-text bad-bg">
+                {activeMatch.review?.whatToImprove || "Попробуй пройти интервью ещё раз."}
+              </p>
             </section>
 
             <section className="history-modal-section">
               <h4 className="history-modal-section-title neutral">Лучший ответ</h4>
-              {hasReviewAccess ? (
-                <p className="history-modal-section-text neutral-bg best-answer">
-                  {activeMatch.review?.bestAnswer || "Лучший ответ пока недоступен."}
-                </p>
-              ) : (
-                <div className="review-locked-block neutral-bg">
-                  <p className="review-locked-title">Доступно в Pro</p>
-                  <p className="review-locked-text">
-                    Подключи Pro, чтобы получить лучший вариант ответа на слабый момент интервью.
-                  </p>
-                </div>
-              )}
+              <p className="history-modal-section-text neutral-bg best-answer">
+                {activeMatch.review?.bestAnswer || "Лучший ответ пока недоступен."}
+              </p>
             </section>
 
             <button className="history-modal-close-btn" onClick={openReadOnlyChat}>
