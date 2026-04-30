@@ -35,6 +35,27 @@ async function sendStartMessage(chatId) {
   }
 }
 
+async function answerPreCheckoutQuery({ queryId, ok, errorMessage }) {
+  const botToken = getBotToken();
+  const endpoint = `${TELEGRAM_API_BASE}/bot${botToken}/answerPreCheckoutQuery`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      pre_checkout_query_id: queryId,
+      ok,
+      ...(ok ? {} : { error_message: errorMessage || "Платеж временно недоступен" }),
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok || !data?.ok) {
+    throw new Error(data?.description || "Failed to answer pre_checkout_query");
+  }
+}
+
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -79,6 +100,19 @@ export default async function handler(req, res) {
     if (messageText.startsWith("/start") && chatId) {
       await sendStartMessage(chatId);
       return res.status(200).json({ ok: true, handled: "start" });
+    }
+
+    const preCheckoutQuery = update?.pre_checkout_query;
+    if (preCheckoutQuery?.id) {
+      const payload = String(preCheckoutQuery?.invoice_payload || "");
+      const packageMatch = payload.match(/^rolecast_pkg_(warmup|battle|boost)_/);
+      const isKnownPackage = Boolean(packageMatch?.[1]);
+      await answerPreCheckoutQuery({
+        queryId: preCheckoutQuery.id,
+        ok: isKnownPackage,
+        errorMessage: "Пакет не найден. Попробуйте снова.",
+      });
+      return res.status(200).json({ ok: true, handled: "pre_checkout_query" });
     }
 
     const payment = update?.message?.successful_payment;
