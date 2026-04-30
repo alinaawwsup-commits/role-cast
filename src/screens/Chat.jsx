@@ -9,6 +9,16 @@ import Paywall from "../components/Paywall";
 
 const MAX_REPLIES = 15;
 const HR_NAMES = ["Алексей", "Ирина", "Дмитрий", "Анна", "Максим", "Ольга", "Кирилл", "Мария"];
+const HR_GENDER_BY_NAME = {
+  Алексей: "male",
+  Дмитрий: "male",
+  Максим: "male",
+  Кирилл: "male",
+  Ирина: "female",
+  Анна: "female",
+  Ольга: "female",
+  Мария: "female",
+};
 const REVIEW_PROMPT = `Ты — эксперт по карьерному коучингу. 
 Проанализируй это собеседование и дай обратную связь кандидату.
 
@@ -173,8 +183,14 @@ function Chat() {
     : "Симуляция HR-диалога";
   const levelLabel = getLevelLabel(state?.level || "Мид");
   const systemPrompt = useMemo(
-    () =>
-      `${buildSystemPrompt(
+    () => {
+      const hrGender = HR_GENDER_BY_NAME[hrNameRef.current] || "male";
+      const grammarHint =
+        hrGender === "female"
+          ? "Ты говоришь от женского лица и используешь женские формы: «я поняла», «я посмотрела», «я готова»."
+          : "Ты говоришь от мужского лица и используешь мужские формы: «я понял», «я посмотрел», «я готов».";
+
+      return `${buildSystemPrompt(
         state?.position || "Специалист",
         state?.company || "IT сфера",
         levelLabel
@@ -183,7 +199,9 @@ function Chat() {
 Дополнение по роли:
 - Тебя зовут ${hrNameRef.current}
 - В первом сообщении коротко представься по имени.
-- Не меняй имя в ходе интервью.`,
+- Не меняй имя в ходе интервью.
+- ${grammarHint}`;
+    },
     [state?.position, state?.company, levelLabel]
   );
   const progressPercent = Math.min((replyCount / MAX_REPLIES) * 100, 100);
