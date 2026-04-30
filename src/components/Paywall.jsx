@@ -4,8 +4,9 @@ import { startStarsCheckout } from "../lib/billing";
 import { useAuth } from "../context/AuthContext";
 
 const PACKAGES = [
-  { id: "start", title: "Старт", interviews: 10, stars: 349 },
-  { id: "boost", title: "Прокачка", interviews: 30, stars: 899, featured: true },
+  { id: "warmup", title: "Разминка", interviews: 3, stars: 100 },
+  { id: "battle", title: "Боевой режим", interviews: 10, stars: 300, featured: true },
+  { id: "boost", title: "Прокачка", interviews: 25, stars: 600 },
 ];
 
 function Paywall({ isOpen, onClose }) {

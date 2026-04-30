@@ -1,16 +1,22 @@
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 const PACKAGES = {
-  start: {
-    id: "start",
-    title: "Старт",
+  warmup: {
+    id: "warmup",
+    title: "Разминка",
+    interviews: 3,
+    stars: 100,
+  },
+  battle: {
+    id: "battle",
+    title: "Боевой режим",
     interviews: 10,
-    stars: 349,
+    stars: 300,
   },
   boost: {
     id: "boost",
     title: "Прокачка",
-    interviews: 30,
-    stars: 899,
+    interviews: 25,
+    stars: 600,
   },
 };
 

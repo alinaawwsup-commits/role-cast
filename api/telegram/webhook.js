@@ -2,8 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 const PACKAGE_CREDITS = {
-  start: 10,
-  boost: 30,
+  warmup: 3,
+  battle: 10,
+  boost: 25,
 };
 
 function getBotToken() {
@@ -93,7 +94,7 @@ export default async function handler(req, res) {
 
     const telegramId = String(from.id);
     const payload = String(payment.invoice_payload || "");
-    const packageMatch = payload.match(/^rolecast_pkg_(start|boost)_/);
+    const packageMatch = payload.match(/^rolecast_pkg_(warmup|battle|boost)_/);
     const packageId = packageMatch?.[1];
     const creditsToAdd = PACKAGE_CREDITS[packageId];
     if (!creditsToAdd) {
