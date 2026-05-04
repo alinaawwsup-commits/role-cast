@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import { buildSystemPrompt, sendMessage } from "../lib/anthropic";
 import { saveInterviewResult } from "../lib/interviews";
-import { saveInterview } from "../lib/user";
+import { saveInterview, updateLatestInterviewDebrief } from "../lib/user";
 import { useAuth } from "../context/AuthContext";
 import Paywall from "../components/Paywall";
 
@@ -32,6 +32,10 @@ const REVIEW_PROMPT = `Ты — эксперт по карьерному коу�
   bestAnswer: строка — лучший альтернативный ответ 
                на самый слабый момент в интервью
 }`;
+const JOB_TITLE_KEYWORDS =
+  /(developer|engineer|manager|designer|analyst|qa|devops|product|project|hr|recruiter|marketer|sales|accountant|lawyer|разработчик|инженер|менеджер|дизайнер|аналитик|тестировщик|девопс|продакт|проджект|рекрутер|маркетолог|продаж|бухгалтер|юрист|frontend|backend|fullstack|ios|android|data|ml|python|javascript|java|go|php|1с)/i;
+const VOWEL_ONLY_WORD = /^[aeiouyаеёиоуыэюя]+$/i;
+const MAX_INVALID_POSITION_ATTEMPTS = 2;
 
 function getLevelLabel(level) {
   const levelMap = {
@@ -148,6 +152,27 @@ function sleep(ms) {
   });
 }
 
+function isLikelyInvalidPosition(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return true;
+  if (JOB_TITLE_KEYWORDS.test(text)) return false;
+
+  const words = text.split(/\s+/).filter(Boolean);
+  const letters = text.match(/[a-zа-яё]/gi) || [];
+  if (letters.length < 2) return true;
+
+  const vowelOnlyWords = words.filter((word) => VOWEL_ONLY_WORD.test(word));
+  if (words.length > 0 && vowelOnlyWords.length === words.length) return true;
+
+  const uniqueLetters = new Set(letters.map((char) => char.toLowerCase()));
+  if (letters.length >= 5 && uniqueLetters.size <= 2) return true;
+
+  const noisePattern = /^[\W\d_]+$/;
+  if (noisePattern.test(text)) return true;
+
+  return false;
+}
+
 function Chat() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -166,6 +191,7 @@ function Chat() {
   const [reviewData, setReviewData] = useState(null);
   const [isPaywallOpen, setPaywallOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [effectivePosition, setEffectivePosition] = useState(() => state?.position || "Специалист");
   const runRef = useRef({ started: false, requestId: 0 });
   const interviewIdRef = useRef(`int-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const messagesEndRef = useRef(null);
@@ -173,6 +199,8 @@ function Chat() {
   const savedToSupabaseRef = useRef(false);
   const hrNameRef = useRef(HR_NAMES[Math.floor(Math.random() * HR_NAMES.length)]);
   const recognitionRef = useRef(null);
+  const needsPositionClarificationRef = useRef(isLikelyInvalidPosition(state?.position || ""));
+  const invalidPositionAttemptsRef = useRef(0);
 
   const isReadOnly = Boolean(state?.readOnly);
   const isClosed = Boolean(state?.closed);
@@ -191,7 +219,7 @@ function Chat() {
           : "Ты говоришь от мужского лица и используешь мужские формы: «я понял», «я посмотрел», «я готов».";
 
       return `${buildSystemPrompt(
-        state?.position || "Специалист",
+        effectivePosition || "Специалист",
         state?.company || "IT сфера",
         levelLabel
       )}
@@ -202,7 +230,7 @@ function Chat() {
 - Не меняй имя в ходе интервью.
 - ${grammarHint}`;
     },
-    [state?.position, state?.company, levelLabel]
+    [effectivePosition, state?.company, levelLabel]
   );
   const progressPercent = Math.min((replyCount / MAX_REPLIES) * 100, 100);
   const progressColor = getProgressTone(replyCount);
@@ -312,6 +340,16 @@ function Chat() {
 
     if (runRef.current.started) return;
     runRef.current.started = true;
+    if (needsPositionClarificationRef.current) {
+      setMessages([
+        {
+          role: "assistant",
+          content:
+            "Название должности выглядит нереалистично. Напишите, пожалуйста, реальную должность (например: Frontend Developer, QA Engineer, Product Manager), и продолжим интервью.",
+        },
+      ]);
+      return;
+    }
     runAssistantTurn([], 0);
   }, [isReadOnly, state?.messages, isClosed]);
 
@@ -349,6 +387,10 @@ function Chat() {
 
     const persist = async () => {
       try {
+        const chatMessages = messages.map((message) => ({
+          role: message.role === "user" ? "candidate" : "hr",
+          text: message.content,
+        }));
         await saveInterview({
           telegram_id: telegramId,
           position: state?.position || "",
@@ -357,6 +399,7 @@ function Chat() {
           result,
           reply_count: replyCount,
           debrief: reviewData || null,
+          chat_messages: chatMessages,
         });
         savedToSupabaseRef.current = true;
         await refreshInterviewAccess(telegramId);
@@ -376,6 +419,28 @@ function Chat() {
     state?.company,
     state?.level,
     refreshInterviewAccess,
+  ]);
+
+  useEffect(() => {
+    if (!gameOver || isReadOnly || !result || !reviewData) return;
+
+    updateLatestInterviewDebrief({
+      position: state?.position || "",
+      company: state?.company || "",
+      result,
+      reply_count: replyCount,
+      debrief: reviewData,
+    }).catch(() => {
+      // non-fatal: history still keeps local review
+    });
+  }, [
+    gameOver,
+    isReadOnly,
+    result,
+    reviewData,
+    replyCount,
+    state?.position,
+    state?.company,
   ]);
 
   useEffect(
@@ -432,6 +497,49 @@ function Chat() {
     setMessages(nextMessages);
     setReplyCount(nextReplyCount);
     setDraft("");
+
+    if (needsPositionClarificationRef.current) {
+      if (isLikelyInvalidPosition(userText)) {
+        invalidPositionAttemptsRef.current += 1;
+
+        if (invalidPositionAttemptsRef.current >= MAX_INVALID_POSITION_ATTEMPTS) {
+          const finalMessages = [
+            ...nextMessages,
+            {
+              role: "assistant",
+              content:
+                "Интервью завершено: вы не указали реальную должность после повторного запроса.\n[REJECTED]",
+            },
+          ];
+          setMessages(finalMessages);
+          finalizeGame("rejected", { immediate: true });
+          return;
+        }
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content:
+              "Похоже, это все еще не должность. Напишите реальную роль, иначе я завершу интервью.",
+          },
+        ]);
+        return;
+      }
+
+      needsPositionClarificationRef.current = false;
+      invalidPositionAttemptsRef.current = 0;
+      setEffectivePosition(userText);
+      const startMessages = [
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: `Принято, должность: ${userText}. Начинаем интервью. Кратко расскажите о себе и почему выбрали эту роль.`,
+        },
+      ];
+      setMessages(startMessages);
+      return;
+    }
 
     await runAssistantTurn(nextMessages, nextReplyCount);
   };
