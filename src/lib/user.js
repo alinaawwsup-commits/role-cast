@@ -4,6 +4,7 @@ const LOCAL_PREMIUM_KEY = "local-premium-user-v1";
 const LOCAL_INTERVIEWS_KEY = "local-interviews-v1";
 const LOCAL_HISTORY_KEY = "tg-app-interview-history-v1";
 const LOCAL_CREDITS_KEY = "local-interview-credits-v1";
+const LOCAL_LAST_TELEGRAM_ID_KEY = "tg-last-id-v1";
 const FREE_INTERVIEWS_TOTAL = 1;
 
 function readLocalInterviews() {
@@ -119,9 +120,51 @@ CREATE TABLE users (
 */
 
 export function getTelegramId() {
-  const tgId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-  if (!tgId) return "test_user_123";
-  return String(tgId);
+  const unsafeId = window?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  if (unsafeId) {
+    const value = String(unsafeId);
+    try {
+      localStorage.setItem(LOCAL_LAST_TELEGRAM_ID_KEY, value);
+    } catch {
+      // ignore cache write errors
+    }
+    return value;
+  }
+
+  const initData = window?.Telegram?.WebApp?.initData || "";
+  if (initData) {
+    try {
+      const params = new URLSearchParams(initData);
+      const userRaw = params.get("user");
+      if (userRaw) {
+        const parsed = JSON.parse(userRaw);
+        const parsedId = parsed?.id ? String(parsed.id) : "";
+        if (parsedId) {
+          try {
+            localStorage.setItem(LOCAL_LAST_TELEGRAM_ID_KEY, parsedId);
+          } catch {
+            // ignore cache write errors
+          }
+          return parsedId;
+        }
+      }
+    } catch {
+      // ignore parsing errors
+    }
+  }
+
+  try {
+    const cachedId = localStorage.getItem(LOCAL_LAST_TELEGRAM_ID_KEY) || "";
+    if (cachedId) return cachedId;
+  } catch {
+    // ignore cache read errors
+  }
+
+  const isLocalDev =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+  if (isLocalDev) return "test_user_123";
+  return "";
 }
 
 export async function getInterviewsToday(telegramId) {
@@ -142,7 +185,8 @@ export async function getInterviewsToday(telegramId) {
       .gte("created_at", startOfTodayLocal.toISOString());
 
     if (error) throw error;
-    return Math.max(count || 0, localCount, historyCount);
+    // local history key is not scoped by telegram_id; do not mix into account limits.
+    return Math.max(count || 0, localCount);
   } catch {
     return Math.max(localCount, historyCount);
   }
@@ -163,7 +207,7 @@ async function getTotalInterviews(telegramId) {
       .eq("telegram_id", telegramId);
 
     if (error) throw error;
-    return Math.max(count || 0, localCount, historyCount);
+    return Math.max(count || 0, localCount);
   } catch {
     return Math.max(localCount, historyCount);
   }
@@ -190,7 +234,108 @@ async function getPurchasedCredits(telegramId) {
   }
 }
 
+let localInterviewSyncChain = Promise.resolve();
+/** Serializes every POST to /api/user/record-interview (sync + saveInterview) to avoid duplicate rows. */
+let recordInterviewPostChain = Promise.resolve();
+
+function postRecordInterview(initData, interviewPayload) {
+  recordInterviewPostChain = recordInterviewPostChain.then(() =>
+    fetch("/api/user/record-interview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData, interview: interviewPayload }),
+    }).catch((error) => {
+      console.error("record-interview request failed", error);
+      return new Response("", { status: 500 });
+    })
+  );
+  return recordInterviewPostChain;
+}
+
+function syncLocalInterviewsToServer(initData, telegramId) {
+  localInterviewSyncChain = localInterviewSyncChain.then(async () => {
+    const all = readLocalInterviews();
+    const keep = [];
+    let anySynced = false;
+    for (const item of all) {
+      if (item.telegram_id !== telegramId) {
+        keep.push(item);
+        continue;
+      }
+      try {
+        const res = await postRecordInterview(initData, {
+          position: item.position,
+          company: item.company,
+          level: item.level,
+          result: item.result,
+          reply_count: item.reply_count,
+          debrief: item.debrief ?? null,
+        });
+        if (res.ok) {
+          anySynced = true;
+          continue;
+        }
+      } catch {
+        // keep local copy
+      }
+      keep.push(item);
+    }
+    if (anySynced) writeLocalInterviews(keep);
+  });
+  return localInterviewSyncChain;
+}
+
 export async function getInterviewAccess(telegramId) {
+  const initData =
+    typeof window !== "undefined" ? window.Telegram?.WebApp?.initData || "" : "";
+
+  if (initData && initData.length > 20) {
+    try {
+      const fetchAccess = () =>
+        fetch("/api/user/interview-access", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ initData, telegramId }),
+        });
+
+      let response = await fetchAccess();
+      if (response.ok) {
+        let payload = await response.json();
+        if (
+          payload?.ok &&
+          typeof payload.remainingInterviews === "number" &&
+          typeof payload.purchasedCredits === "number"
+        ) {
+          const serverUsed = Math.max(0, Number(payload.usedInterviews));
+          const localUsed = getLocalInterviewsTotal(telegramId);
+          if (localUsed > serverUsed) {
+            await syncLocalInterviewsToServer(initData, telegramId);
+            response = await fetchAccess();
+            if (response.ok) {
+              const next = await response.json();
+              if (next?.ok) payload = next;
+            }
+          }
+
+          const purchasedCredits = Math.max(0, Number(payload.purchasedCredits));
+          const freeIncluded = Number(payload.freeIncluded) || FREE_INTERVIEWS_TOTAL;
+          const totalAllowed = freeIncluded + purchasedCredits;
+          const usedInterviews = Math.max(0, Number(payload.usedInterviews));
+          const remainingInterviews = Math.max(0, totalAllowed - usedInterviews);
+          return {
+            freeIncluded,
+            purchasedCredits,
+            usedInterviews,
+            totalAllowed,
+            remainingInterviews,
+          };
+        }
+      }
+    } catch {
+      // fall back to anon Supabase (may fail under strict RLS)
+    }
+  }
+
   const [usedInterviews, purchasedCredits] = await Promise.all([
     getTotalInterviews(telegramId),
     getPurchasedCredits(telegramId),
@@ -208,6 +353,27 @@ export async function getInterviewAccess(telegramId) {
 }
 
 export async function saveInterview(data) {
+  const initData =
+    typeof window !== "undefined" ? window.Telegram?.WebApp?.initData || "" : "";
+  if (initData && initData.length > 20) {
+    try {
+      const res = await postRecordInterview(initData, {
+        position: data.position,
+        company: data.company,
+        level: data.level,
+        result: data.result,
+        reply_count: data.reply_count,
+        debrief: data.debrief ?? null,
+        chat_messages: Array.isArray(data.chat_messages) ? data.chat_messages : [],
+      });
+      if (res.ok) {
+        return;
+      }
+    } catch {
+      // fall through to anon insert
+    }
+  }
+
   if (!supabase) {
     const list = readLocalInterviews();
     list.push({
@@ -227,6 +393,7 @@ export async function saveInterview(data) {
       result: data.result,
       reply_count: data.reply_count,
       debrief: data.debrief,
+      chat_messages: Array.isArray(data.chat_messages) ? data.chat_messages : null,
     });
 
     if (error) throw error;
@@ -244,6 +411,32 @@ export async function saveInterview(data) {
       created_at: new Date().toISOString(),
     });
     writeLocalInterviews(list);
+  }
+}
+
+export async function updateLatestInterviewDebrief(data) {
+  const initData =
+    typeof window !== "undefined" ? window.Telegram?.WebApp?.initData || "" : "";
+  if (!initData || initData.length <= 20) return false;
+
+  try {
+    const response = await fetch("/api/user/update-latest-debrief", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        initData,
+        interview: {
+          position: data.position,
+          company: data.company,
+          result: data.result,
+          reply_count: data.reply_count,
+          debrief: data.debrief,
+        },
+      }),
+    });
+    return response.ok;
+  } catch {
+    return false;
   }
 }
 
@@ -276,7 +469,7 @@ export async function isPremiumUser(telegramId) {
   try {
     const { data, error } = await supabase
       .from("users")
-      .select("is_premium,premium_until")
+      .select("is_premium,premium_until,package_credits")
       .eq("telegram_id", telegramId)
       .maybeSingle();
 
@@ -286,7 +479,7 @@ export async function isPremiumUser(telegramId) {
       const { data: inserted, error: insertError } = await supabase
         .from("users")
         .insert({ telegram_id: telegramId, is_premium: false, premium_until: null })
-        .select("is_premium,premium_until")
+        .select("is_premium,premium_until,package_credits")
         .single();
 
       if (insertError) throw insertError;
