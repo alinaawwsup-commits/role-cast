@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomSheet from "../components/BottomSheet";
-import { getInterviewStats } from "../lib/interviews";
+import { getInterviewStats, getInterviewStatsWithServer } from "../lib/interviews";
 import Paywall from "../components/Paywall";
 import { useAuth } from "../context/AuthContext";
 
@@ -26,6 +26,7 @@ function Home() {
   const [company, setCompany] = useState("");
   const [selectedLevel, setSelectedLevel] = useState(LEVELS[1]);
   const [stats, setStats] = useState(() => getInterviewStats());
+  const [isStatsLoading, setStatsLoading] = useState(true);
 
   const canStart = position.trim() && company.trim();
   const hasStats = stats.totalInterviews > 0;
@@ -72,11 +73,18 @@ function Home() {
   };
 
   useEffect(() => {
-    const refreshStats = () => setStats(getInterviewStats());
+    const refreshStats = async () => {
+      setStatsLoading(true);
+      const local = getInterviewStats();
+      setStats(local);
+      const withServer = await getInterviewStatsWithServer(telegramId);
+      setStats(withServer);
+      setStatsLoading(false);
+    };
     window.addEventListener("focus", refreshStats);
     refreshStats();
     return () => window.removeEventListener("focus", refreshStats);
-  }, []);
+  }, [telegramId]);
 
   useEffect(() => {
     refreshInterviewAccess(telegramId);
@@ -107,7 +115,9 @@ function Home() {
         Начать интервью
       </button>
 
-      {hasStats ? (
+      {isStatsLoading ? (
+        <div className="home-stats-empty">Загрузка статистики...</div>
+      ) : hasStats ? (
         <div className="home-stats">
           <div className="home-stat-item">
             <span className="home-stat-value">{stats.totalInterviews}</span>

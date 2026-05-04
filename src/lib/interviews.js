@@ -65,6 +65,60 @@ export function getInterviewHistory() {
     }));
 }
 
+function normalizeServerStatus(raw) {
+  const value = String(raw || "").toLowerCase();
+  if (value === "offer" || value === "accepted") return "accepted";
+  if (value === "rejected" || value === "reject") return "rejected";
+  return "unknown";
+}
+
+export async function getInterviewHistoryWithServer(telegramId) {
+  const localHistory = getInterviewHistory();
+  const initData = window?.Telegram?.WebApp?.initData || "";
+  const safeTelegramId = String(telegramId || "").trim();
+  if ((!initData || initData.length <= 20) && !safeTelegramId) return localHistory;
+
+  try {
+    const response = await fetch("/api/user/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData, telegramId: safeTelegramId }),
+    });
+    if (!response.ok) return localHistory;
+
+    const payload = await response.json();
+    const serverRows = Array.isArray(payload?.rows) ? payload.rows : [];
+    const serverHistory = serverRows.map((row) => ({
+      id: String(row.id || `${row.telegram_id || "srv"}-${row.created_at || Date.now()}`),
+      position: row.position || "Не указано",
+      company: row.company || "IT сфера",
+      level: toDisplayLevel(row.level),
+      status: normalizeServerStatus(row.result),
+      replies: `${Number(row.reply_count) || 0} реплик`,
+      date: toRelativeDate(row.created_at || new Date().toISOString()),
+      createdAt: row.created_at || new Date().toISOString(),
+      replyCount: Number(row.reply_count) || 0,
+      chatMessages: Array.isArray(row.chat_messages) ? row.chat_messages : [],
+      review: row.debrief || null,
+    }));
+
+    const merged = [...localHistory];
+    const seen = new Set(
+      localHistory.map((item) => `${item.position}::${item.company}::${new Date(item.createdAt).toDateString()}`)
+    );
+    for (const item of serverHistory) {
+      const key = `${item.position}::${item.company}::${new Date(item.createdAt).toDateString()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(item);
+    }
+
+    return merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch {
+    return localHistory;
+  }
+}
+
 export function saveInterviewResult(interview) {
   const existing = getInterviewHistory();
   const nextRecord = {
@@ -90,5 +144,13 @@ export function getInterviewStats() {
   const accepted = history.filter((item) => item.status === "accepted").length;
   const winRate = totalInterviews === 0 ? "0%" : `${Math.round((accepted / totalInterviews) * 100)}%`;
 
+  return { totalInterviews, accepted, winRate };
+}
+
+export async function getInterviewStatsWithServer(telegramId) {
+  const history = await getInterviewHistoryWithServer(telegramId);
+  const totalInterviews = history.length;
+  const accepted = history.filter((item) => item.status === "accepted").length;
+  const winRate = totalInterviews === 0 ? "0%" : `${Math.round((accepted / totalInterviews) * 100)}%`;
   return { totalInterviews, accepted, winRate };
 }

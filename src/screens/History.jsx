@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import BottomSheet from "../components/BottomSheet";
-import { getInterviewHistory } from "../lib/interviews";
+import { getInterviewHistoryWithServer } from "../lib/interviews";
 import Paywall from "../components/Paywall";
 import { useAuth } from "../context/AuthContext";
 
@@ -35,6 +35,7 @@ function History() {
   const navigate = useNavigate();
   const { interviewAccess, telegramId, refreshInterviewAccess } = useAuth();
   const [matches, setMatches] = useState([]);
+  const [isHistoryLoading, setHistoryLoading] = useState(true);
   const [activeMatch, setActiveMatch] = useState(null);
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [isPaywallOpen, setPaywallOpen] = useState(false);
@@ -43,11 +44,16 @@ function History() {
   const [selectedLevel, setSelectedLevel] = useState(LEVELS[1]);
 
   useEffect(() => {
-    const loadHistory = () => setMatches(getInterviewHistory());
+    const loadHistory = async () => {
+      setHistoryLoading(true);
+      const rows = await getInterviewHistoryWithServer(telegramId);
+      setMatches(rows);
+      setHistoryLoading(false);
+    };
     loadHistory();
     window.addEventListener("focus", loadHistory);
     return () => window.removeEventListener("focus", loadHistory);
-  }, []);
+  }, [telegramId]);
 
   const stats = useMemo(() => {
     const totalInterviews = matches.length;
@@ -65,7 +71,12 @@ function History() {
     [stats]
   );
 
-  const statusLabel = activeMatch?.status === "accepted" ? "Оффер" : "Отказ";
+  const statusLabel =
+    activeMatch?.status === "accepted"
+      ? "Оффер"
+      : activeMatch?.status === "rejected"
+        ? "Отказ"
+        : "Без вердикта";
   const hasMatches = matches.length > 0;
   const canStart = position.trim() && company.trim();
   const statusText = useMemo(
@@ -143,13 +154,18 @@ function History() {
       </header>
 
       <div className="history-list">
-        {hasMatches ? (
+        {isHistoryLoading ? (
+          <div className="history-empty">
+            <p className="history-empty-title">Загрузка истории...</p>
+          </div>
+        ) : hasMatches ? (
           matches.map((match) => {
             const isAccepted = match.status === "accepted";
+            const isRejected = match.status === "rejected";
             return (
               <article
                 key={match.id}
-                className={`history-match-card ${isAccepted ? "accepted" : "rejected"}`}
+                className={`history-match-card ${isAccepted ? "accepted" : isRejected ? "rejected" : ""}`.trim()}
                 onClick={() => setActiveMatch(match)}
               >
                 <div className="history-match-main">
@@ -157,9 +173,9 @@ function History() {
                     <div className="history-match-top">
                       <h2 className="history-match-position">{match.position}</h2>
                       <span
-                        className={`history-status-tag ${isAccepted ? "accepted" : "rejected"}`}
+                        className={`history-status-tag ${isAccepted ? "accepted" : isRejected ? "rejected" : ""}`.trim()}
                       >
-                        {isAccepted ? "Оффер" : "Отказ"}
+                        {isAccepted ? "Оффер" : isRejected ? "Отказ" : "Без вердикта"}
                       </span>
                     </div>
                     <p className="history-match-meta">
@@ -281,7 +297,8 @@ function History() {
               </p>
             </div>
 
-            <div className="history-modal-metrics">
+            {activeMatch.review && (
+              <div className="history-modal-metrics">
               <article className="history-modal-metric-card">
                 <span className="history-modal-metric-value">
                   {activeMatch.review?.confidence ?? 0}/10
@@ -301,27 +318,39 @@ function History() {
                 <span className="history-modal-metric-label">Давление</span>
               </article>
             </div>
+            )}
 
-            <section className="history-modal-section">
-              <h4 className="history-modal-section-title good">Что сработало</h4>
-              <p className="history-modal-section-text good-bg">
-                {activeMatch.review?.whatWorked || "Разбор пока не готов."}
-              </p>
-            </section>
+            {activeMatch.review ? (
+              <>
+                <section className="history-modal-section">
+                  <h4 className="history-modal-section-title good">Что сработало</h4>
+                  <p className="history-modal-section-text good-bg">
+                    {activeMatch.review?.whatWorked || "Разбор пока не готов."}
+                  </p>
+                </section>
 
-            <section className="history-modal-section">
-              <h4 className="history-modal-section-title bad">Что можно лучше</h4>
-              <p className="history-modal-section-text bad-bg">
-                {activeMatch.review?.whatToImprove || "Попробуй пройти интервью ещё раз."}
-              </p>
-            </section>
+                <section className="history-modal-section">
+                  <h4 className="history-modal-section-title bad">Что можно лучше</h4>
+                  <p className="history-modal-section-text bad-bg">
+                    {activeMatch.review?.whatToImprove || "Попробуй пройти интервью ещё раз."}
+                  </p>
+                </section>
 
-            <section className="history-modal-section">
-              <h4 className="history-modal-section-title neutral">Лучший ответ</h4>
-              <p className="history-modal-section-text neutral-bg best-answer">
-                {activeMatch.review?.bestAnswer || "Лучший ответ пока недоступен."}
-              </p>
-            </section>
+                <section className="history-modal-section">
+                  <h4 className="history-modal-section-title neutral">Лучший ответ</h4>
+                  <p className="history-modal-section-text neutral-bg best-answer">
+                    {activeMatch.review?.bestAnswer || "Лучший ответ пока недоступен."}
+                  </p>
+                </section>
+              </>
+            ) : (
+              <section className="history-modal-section">
+                <h4 className="history-modal-section-title neutral">Разбор</h4>
+                <p className="history-modal-section-text neutral-bg">
+                  Для этой записи разбор не сохранен.
+                </p>
+              </section>
+            )}
 
             <button className="history-modal-close-btn" onClick={openReadOnlyChat}>
               Посмотреть чат
