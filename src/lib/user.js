@@ -238,12 +238,12 @@ let localInterviewSyncChain = Promise.resolve();
 /** Serializes every POST to /api/user/record-interview (sync + saveInterview) to avoid duplicate rows. */
 let recordInterviewPostChain = Promise.resolve();
 
-function postRecordInterview(initData, interviewPayload) {
+function postRecordInterview(initData, telegramId, interviewPayload) {
   recordInterviewPostChain = recordInterviewPostChain.then(() =>
     fetch("/api/user/record-interview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initData, interview: interviewPayload }),
+      body: JSON.stringify({ initData, telegramId, interview: interviewPayload }),
     }).catch((error) => {
       console.error("record-interview request failed", error);
       return new Response("", { status: 500 });
@@ -263,7 +263,7 @@ function syncLocalInterviewsToServer(initData, telegramId) {
         continue;
       }
       try {
-        const res = await postRecordInterview(initData, {
+        const res = await postRecordInterview(initData, telegramId, {
           position: item.position,
           company: item.company,
           level: item.level,
@@ -355,7 +355,7 @@ export async function saveInterview(data) {
     typeof window !== "undefined" ? window.Telegram?.WebApp?.initData || "" : "";
   if (initData && initData.length > 20) {
     try {
-      const res = await postRecordInterview(initData, {
+      const res = await postRecordInterview(initData, data.telegram_id, {
         position: data.position,
         company: data.company,
         level: data.level,
@@ -412,10 +412,11 @@ export async function saveInterview(data) {
   }
 }
 
-export async function updateLatestInterviewDebrief(data) {
+export async function updateLatestInterviewDebrief(data, telegramId) {
   const initData =
     typeof window !== "undefined" ? window.Telegram?.WebApp?.initData || "" : "";
-  if (!initData || initData.length <= 20) return false;
+  const safeTelegramId = String(telegramId || getTelegramId() || "").trim();
+  if ((!initData || initData.length <= 20) && !safeTelegramId) return false;
 
   try {
     const response = await fetch("/api/user/update-latest-debrief", {
@@ -423,6 +424,7 @@ export async function updateLatestInterviewDebrief(data) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         initData,
+        telegramId: safeTelegramId,
         interview: {
           position: data.position,
           company: data.company,

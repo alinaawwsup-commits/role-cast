@@ -424,13 +424,16 @@ function Chat() {
   useEffect(() => {
     if (!gameOver || isReadOnly || !result || !reviewData) return;
 
-    updateLatestInterviewDebrief({
-      position: state?.position || "",
-      company: state?.company || "",
-      result,
-      reply_count: replyCount,
-      debrief: reviewData,
-    }).catch(() => {
+    updateLatestInterviewDebrief(
+      {
+        position: effectivePosition || state?.position || "",
+        company: state?.company || "",
+        result,
+        reply_count: replyCount,
+        debrief: reviewData,
+      },
+      telegramId
+    ).catch(() => {
       // non-fatal: history still keeps local review
     });
   }, [
@@ -439,8 +442,10 @@ function Chat() {
     result,
     reviewData,
     replyCount,
+    effectivePosition,
     state?.position,
     state?.company,
+    telegramId,
   ]);
 
   useEffect(
