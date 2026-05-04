@@ -289,51 +289,49 @@ export async function getInterviewAccess(telegramId) {
   const initData =
     typeof window !== "undefined" ? window.Telegram?.WebApp?.initData || "" : "";
 
-  if (initData && initData.length > 20) {
-    try {
-      const fetchAccess = () =>
-        fetch("/api/user/interview-access", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ initData, telegramId }),
-        });
+  try {
+    const fetchAccess = () =>
+      fetch("/api/user/interview-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData, telegramId }),
+      });
 
-      let response = await fetchAccess();
-      if (response.ok) {
-        let payload = await response.json();
-        if (
-          payload?.ok &&
-          typeof payload.remainingInterviews === "number" &&
-          typeof payload.purchasedCredits === "number"
-        ) {
-          const serverUsed = Math.max(0, Number(payload.usedInterviews));
-          const localUsed = getLocalInterviewsTotal(telegramId);
-          if (localUsed > serverUsed) {
-            await syncLocalInterviewsToServer(initData, telegramId);
-            response = await fetchAccess();
-            if (response.ok) {
-              const next = await response.json();
-              if (next?.ok) payload = next;
-            }
+    let response = await fetchAccess();
+    if (response.ok) {
+      let payload = await response.json();
+      if (
+        payload?.ok &&
+        typeof payload.remainingInterviews === "number" &&
+        typeof payload.purchasedCredits === "number"
+      ) {
+        const serverUsed = Math.max(0, Number(payload.usedInterviews));
+        const localUsed = getLocalInterviewsTotal(telegramId);
+        if (initData && initData.length > 20 && localUsed > serverUsed) {
+          await syncLocalInterviewsToServer(initData, telegramId);
+          response = await fetchAccess();
+          if (response.ok) {
+            const next = await response.json();
+            if (next?.ok) payload = next;
           }
-
-          const purchasedCredits = Math.max(0, Number(payload.purchasedCredits));
-          const freeIncluded = Number(payload.freeIncluded) || FREE_INTERVIEWS_TOTAL;
-          const totalAllowed = freeIncluded + purchasedCredits;
-          const usedInterviews = Math.max(0, Number(payload.usedInterviews));
-          const remainingInterviews = Math.max(0, totalAllowed - usedInterviews);
-          return {
-            freeIncluded,
-            purchasedCredits,
-            usedInterviews,
-            totalAllowed,
-            remainingInterviews,
-          };
         }
+
+        const purchasedCredits = Math.max(0, Number(payload.purchasedCredits));
+        const freeIncluded = Number(payload.freeIncluded) || FREE_INTERVIEWS_TOTAL;
+        const totalAllowed = freeIncluded + purchasedCredits;
+        const usedInterviews = Math.max(0, Number(payload.usedInterviews));
+        const remainingInterviews = Math.max(0, totalAllowed - usedInterviews);
+        return {
+          freeIncluded,
+          purchasedCredits,
+          usedInterviews,
+          totalAllowed,
+          remainingInterviews,
+        };
       }
-    } catch {
-      // fall back to anon Supabase (may fail under strict RLS)
     }
+  } catch {
+    // fall back to anon Supabase (may fail under strict RLS)
   }
 
   const [usedInterviews, purchasedCredits] = await Promise.all([
